@@ -9,6 +9,7 @@
 - **2.ª entrega: 26/10/2026** (conexión front-back; nota 8). **3.ª entrega: lunes 30/11/2026**: rediseño con **Redux Toolkit** (clases del 2/11 y 9/11).
 - Esta repo, **`FoodMarket-Redux`**, es la de la 3.ª entrega (una repo por entrega): arrancó como copia de `FoodMarket-FrontEnd`, con sus 211 commits de historia. La repo de la 2.ª entrega no se toca.
 - **Alcance de Redux por ahora: los GET y la sesión (JWT).** Las escrituras (POST, PUT, PATCH, DELETE) y los GET privados siguen como en la 2.ª entrega hasta que se avise otra cosa.
+- **Fuentes de verdad para Redux, en este orden:** (1) la demo **Redux II** de la profesora (store, `postSlice` con GET, POST y PUT, y los componentes `PostList`, `PostCard`, `PostForm`, `EditPostForm` y `LatestPost`); (2) sus capturas de clase y los apuntes de Redux I; (3) sus 5 PDFs (Redux, Redux Toolkit, Middleware, Integración React-Redux y Slice con Redux Toolkit); (4) el código de FelsaniMotors (un alumno que cursó antes con la misma profesora). Si dos fuentes se contradicen, gana la de número menor.
 - Quien programa es estudiante y aprende haciendo: aplicá la sección 2.
 
 ## 2. Cómo trabajar conmigo (modo mentor)
@@ -20,6 +21,7 @@
 - Si falta información (un endpoint, un campo, una decisión de la sección 4), **no inventes**: frená y preguntame.
 - Un commit por sub-paso, con mensaje claro. Corré `npm run lint` y `npm run build` antes de commitear.
 - No toques archivos fuera del paso pedido. No instales dependencias ni crees carpetas sin avisar y explicar para qué.
+- **Código al estilo de la profesora (3.ª entrega):** simple y parecido a su demo. Nada de abstracciones, APIs de Redux ni patrones que ella no haya mostrado (lista en 3.12). Que el código parezca escrito por alguien del curso, no por una IA.
 
 ## 3. Reglas de la profesora (obligatorias)
 
@@ -120,8 +122,13 @@
 - **Excepción (decisión #7):** `login` y `register` usan `try/catch` y `rejectWithValue(error.response?.data?.message)`, y su `rejected` guarda `state.error = action.payload`, para mostrar el mensaje del backend (credenciales inválidas, usuario duplicado = 400).
 - **Respuesta del backend:** llega como `{ success, message, data }`. El thunk devuelve `cuerpo.data`; las listas vacías llegan con `data: null` → `?? []`.
 - **Rutas públicas sin token.** Los filtros de `GET /platos` van en `params` de Axios (`axios.get(url, { params: filtros })`).
-- **En la vista o el componente:** `const dispatch = useDispatch()`, `const { items, loading, error } = useSelector((state) => state.platos)` y `useEffect(() => { dispatch(fetchPlatos(filtros)); }, [dispatch, filtros])`. `ContenidoAsync` sigue resolviendo cargando / error / vacío.
-- **Escrituras en Redux (cuando se pidan):** el patrón de la profesora, solo con `fulfilled`: crear → `[...state.items, action.payload]`; editar → `findIndex` + `state.items[index] = action.payload`; borrar → `filter` por id. Sin volver a pedir la lista.
+- **En la vista o el componente:** `const dispatch = useDispatch()`, `const { items, loading, error } = useSelector((state) => state.platos)` y `useEffect(() => { dispatch(fetchPlatos(filtros)); }, [dispatch, filtros])`. Se despacha en cada montaje, como en la demo. `ContenidoAsync` sigue resolviendo cargando / error / vacío (o `if (loading) return ...` / `if (error) return ...` antes del `return`).
+- **Dependencias del `useEffect`:** valores simples (`nombre`, `categoriaId`) o un objeto que viva en un `useState`; **nunca un objeto armado en cada render** (se vuelve a despachar sin parar).
+- **Un dato no vive a la vez en Redux y en un `useState`:** al migrar un GET se borran el `useState` y el `fetch` de esa vista.
+- **Escrituras en Redux (cuando se pidan):** el patrón de la profesora, solo con `fulfilled`: crear → `[...state.items, action.payload]`; editar → `findIndex` + `state.items[index] = action.payload`; borrar → `filter` por id. Sin volver a pedir la lista. En la demo el formulario hace `dispatch(createPosts({ title, body }))` **sin `await` ni `.unwrap()`** y se limpia al instante.
+- **Cuidado con `loading`:** `PostList` devuelve "Cargando..." apenas `loading` es `true`. Una escritura no debe prender el mismo `loading` de la lista, o la lista y el formulario desaparecen mientras se guarda.
+- **Qué NO usar (la profesora no lo mostró):** `createSelector`, `createEntityAdapter`, RTK Query, `createListenerMiddleware`, hooks tipados, `.unwrap()`, `rejectWithValue` fuera de `login` y `register`, archivos de selectores, subcarpetas dentro de `components/Redux/`, lógica dentro de `reducers: {}` (salvo `logout`), `redux` o `redux-thunk` sueltos y `useMemo`. Si hace falta alguno, **preguntá primero**. Los thunks escritos a mano (`(dispatch) => ...`) aparecen en un ejemplo de sus PDFs, pero sus demos usan `createAsyncThunk`: usamos `createAsyncThunk`.
+- **Alcance de la primera migración:** la sesión y los GET públicos (`GET /platos`, `GET /platos/{id}` en el campo `platoActual`, `GET /categories`, `GET /ingredientes`, `GET /resenas/plato/{id}`). `GET /carrito`, `/domicilios` y `/orders`, y "mis platos" del chef **no se migran todavía**: se modifican con escrituras locales y quedarían la misma lista en Redux y en `useState` (decisión #14).
 - **`authSlice` ≠ `usuariosSlice`:** `authSlice` es la sesión (quién está logueado, token, rol). `usuariosSlice` será la entidad usuarios del panel Admin (se crea cuando se migre). Si el usuario edita su propio perfil, `authSlice` escucha el thunk de `usuariosSlice` en su `extraReducers`.
 - **Verificación obligatoria:** abrir Redux DevTools y comprobar `@@INIT`, `<dominio>/<accion>/pending` y `/fulfilled` (o `/rejected` con el backend caído) antes de dar un paso por terminado.
 
@@ -144,6 +151,8 @@ Mientras no responda, se usa el comportamiento por defecto. Cada decisión tiene
 | 11  | Borrar un recurso en Redux (no se vio en clase)                                                                             | `filter` por id dentro de `fulfilled`. **Pendiente de confirmar.**                                                                                                                                        |
 | 12  | `useMemo` (la profesora todavía no lo dio)                                                                                  | No usar.                                                                                                                                                                                                  |
 | 13  | Qué pasa con la sesión al recargar (F5)                                                                                     | **Resuelta:** se pierde y se vuelve a ingresar. No se guarda el token en ningún lado.                                                                                                                     |
+| 14  | Qué GET migrar además de la sesión (¿los privados?)                                                                         | Solo los públicos y los que no se modifican desde el cliente (ver 3.12). **Pendiente de confirmar.**                                                                                                      |
+| 15  | Registro: ¿deja la sesión iniciada?                                                                                         | `ENDPOINTS.md` dice que `register` también devuelve `access_token`, `userId` y `role`. Mantener lo que hace hoy `Registro.jsx` y verificarlo antes de escribir el thunk.                                  |
 
 ## 5. Contrato con el backend (resumen; manda `ENDPOINTS.md`)
 
@@ -445,6 +454,9 @@ const crearDomicilio = (datos) => {
 - Mutar el state (`state.items.push(...)`) fuera de un reducer, o escribir `dispatch(fetchPlatos)` sin paréntesis.
 - Poner un `fetch` o `axios` dentro de un componente en lugar de un slice, o instalar `redux` y `redux-thunk` aparte.
 - Poner `try/catch` en todos los thunks: solo `login` y `register`.
+- Usar `action.error.message` en `login` o `register`: ahí el mensaje está en `action.payload`.
+- Olvidarse del `<Provider>` en `main.jsx`, o que la clave del store no coincida con el selector (`platos: ...` → `state.platos`).
+- Dejar el mismo dato en Redux y en un `useState`, o poner en las dependencias del `useEffect` un objeto creado en cada render.
 - Volver a pedir toda la lista después de cada escritura.
 
 ## 7. Diseño (Tailwind v3)
@@ -569,5 +581,5 @@ Prioridad: lo que pide el TPO (registro y login, catálogo, detalle, carrito y c
 - Buscar en `src/`: `forEach`, `==` que no sea `===`, `document.`, `window.`, `alert(`, `confirm(`, `prompt(`, `sessionStorage`, `localStorage`, `let `, `var ` y `try` (este último solo en `login` y `register` de `authSlice`). **No debe quedar ninguna coincidencia** (en la 3.ª entrega `localStorage` ya no tiene excepciones; `document.getElementById` de `main.jsx` es la única heredada de Vite).
 - Probar en el navegador: caso de éxito, validación, credenciales inválidas, token ausente o vencido, falta de permisos, error de red (backend caído), que no se dupliquen registros y que la pantalla se actualice sin F5 ni GET adicional.
 - Abrir **Redux DevTools** y comprobar `@@INIT`, `/pending` y `/fulfilled` (o `/rejected` con el backend caído) del paso.
-- Que los componentes de `components/` no tengan `fetch` ni `axios` (las llamadas viven en los slices).
+- Que los componentes de `components/` no tengan `fetch` ni `axios` (las llamadas viven en los slices), que `axios` esté solo dentro de `src/components/Redux/`, que `rejectWithValue` aparezca solo en `login` y `register`, que no haya carpetas nuevas en `src/`, que ningún dato migrado viva también en un `useState` y que el token exista solo en `state.auth`.
 - Actualizar este checklist de la hoja de ruta y listar los `TODO(backend)` que quedaron.
