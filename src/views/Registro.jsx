@@ -5,6 +5,8 @@ import { useDispatch, useSelector } from 'react-redux'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import Logo from '../components/layout/Logo'
 import RoleOption from '../components/auth/RoleOption'
+import Alert from '../components/comunes/Alert'
+import FormField from '../components/comunes/FormField'
 import { register } from '../components/Redux/authSlice'
 
 function Registro() {
@@ -120,17 +122,8 @@ function Registro() {
           </p>
 
           {errorGeneral && (
-            <div
-              role="alert"
-              className="mt-6 flex gap-3 rounded-lg border border-error/30 bg-error-container p-4 text-on-error-container"
-            >
-              <span className="material-symbols-outlined fill" aria-hidden="true">
-                error
-              </span>
-              <div>
-                <p className="text-label-lg">No pudimos crear la cuenta</p>
-                <p className="text-body-sm">{errorGeneral}</p>
-              </div>
+            <div className="mt-6">
+              <Alert title="No pudimos crear la cuenta" messages={[errorGeneral]} />
             </div>
           )}
 
@@ -159,105 +152,31 @@ function Registro() {
             </fieldset>
 
             <div className="grid gap-5 sm:grid-cols-2">
-              <div>
-                <label className="label" htmlFor="nombre">
-                  Nombre
-                </label>
-                <input
-                  id="nombre"
-                  name="nombre"
-                  type="text"
-                  className="field"
-                  autoComplete="given-name"
-                  value={datos.nombre}
-                  onChange={handleChange}
-                  aria-invalid={errores.nombre ? 'true' : 'false'}
-                />
-                {errores.nombre && (
-                  <p className="hint hint--error">
-                    <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
-                      error
-                    </span>
-                    <span>{errores.nombre}</span>
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="label" htmlFor="apellido">
-                  Apellido
-                </label>
-                <input
-                  id="apellido"
-                  name="apellido"
-                  type="text"
-                  className="field"
-                  autoComplete="family-name"
-                  value={datos.apellido}
-                  onChange={handleChange}
-                  aria-invalid={errores.apellido ? 'true' : 'false'}
-                />
-                {errores.apellido && (
-                  <p className="hint hint--error">
-                    <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
-                      error
-                    </span>
-                    <span>{errores.apellido}</span>
-                  </p>
-                )}
-              </div>
+              <FormField label="Nombre" name="nombre" value={datos.nombre} onChange={handleChange} error={errores.nombre} autoComplete="given-name" />
+              <FormField label="Apellido" name="apellido" value={datos.apellido} onChange={handleChange} error={errores.apellido} autoComplete="family-name" />
             </div>
 
-            <div>
-              <label className="label" htmlFor="username">
-                Nombre de usuario
-              </label>
-              <input
-                id="username"
-                name="username"
-                type="text"
-                className="field"
-                autoComplete="username"
-                placeholder="clara.mendez"
-                value={datos.username}
-                onChange={handleChange}
-                aria-invalid={errores.username ? 'true' : 'false'}
-              />
-              <p className="hint">Es el nombre con el que vas a ingresar. Entre 3 y 50 caracteres.</p>
-              {errores.username && (
-                <p className="hint hint--error">
-                  <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
-                    error
-                  </span>
-                  <span>{errores.username}</span>
-                </p>
-              )}
-            </div>
+            <FormField
+              label="Nombre de usuario"
+              name="username"
+              value={datos.username}
+              onChange={handleChange}
+              error={errores.username}
+              autoComplete="username"
+              placeholder="clara.mendez"
+              hint="Es el nombre con el que vas a ingresar. Entre 3 y 50 caracteres."
+            />
 
-            <div>
-              <label className="label" htmlFor="email">
-                Correo electrónico
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                className="field"
-                autoComplete="email"
-                placeholder="nombre@correo.com"
-                value={datos.email}
-                onChange={handleChange}
-                aria-invalid={errores.email ? 'true' : 'false'}
-              />
-              {errores.email && (
-                <p className="hint hint--error">
-                  <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
-                    error
-                  </span>
-                  <span>{errores.email}</span>
-                </p>
-              )}
-            </div>
+            <FormField
+              label="Correo electrónico"
+              name="email"
+              type="email"
+              value={datos.email}
+              onChange={handleChange}
+              error={errores.email}
+              autoComplete="email"
+              placeholder="nombre@correo.com"
+            />
 
             <div>
               <label className="label" htmlFor="password">
