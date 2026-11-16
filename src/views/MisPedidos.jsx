@@ -4,6 +4,7 @@ import { useSelector } from 'react-redux'
 import OrderCard from '../components/pedidos/OrderCard'
 import Tabs from '../components/comunes/Tabs'
 import Dialog from '../components/comunes/Dialog'
+import ResenaDialog from '../components/pedidos/ResenaDialog'
 import LoadingState from '../components/comunes/LoadingState'
 import ErrorState from '../components/comunes/ErrorState'
 
@@ -266,28 +267,15 @@ function MisPedidos({ onSesionVencida, onAviso }) {
         onCancel={() => setPedidoACancelarId(null)}
       />
 
-      {/* Diálogo de reseña: cerrado, el título va vacío (Dialog no dibuja nada con open en false) */}
-      <Dialog
-        open={platoAResenar !== null}
-        title={platoAResenar === null ? '' : `Reseñar ${platoAResenar.platoNombre}`}
-        message="Contale a otros cómo estuvo. Solo podés dejar una reseña por plato."
-        confirmLabel="Publicar reseña"
-        confirmVariant="primary"
-        cancelLabel="Volver"
+      <ResenaDialog
+        plato={platoAResenar}
+        calificacion={calificacion}
+        comentario={comentario}
+        onCalificacionChange={(event) => setCalificacion(event.target.value)}
+        onComentarioChange={(event) => setComentario(event.target.value)}
         onConfirm={confirmarResena}
         onCancel={() => setPlatoAResenar(null)}
-      >
-        <label className="label mt-5" htmlFor="calificacion">Calificación</label>
-        <select id="calificacion" className="field" value={calificacion} onChange={(event) => setCalificacion(event.target.value)}>
-          <option value="5">5 · Excelente</option>
-          <option value="4">4 · Muy bueno</option>
-          <option value="3">3 · Bueno</option>
-          <option value="2">2 · Regular</option>
-          <option value="1">1 · Malo</option>
-        </select>
-        <label className="label mt-4" htmlFor="comentario">Comentario (opcional)</label>
-        <textarea id="comentario" className="field" value={comentario} onChange={(event) => setComentario(event.target.value)} />
-      </Dialog>
+      />
 
       <Dialog
         open={pedidoAPagarId !== null}
