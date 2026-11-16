@@ -4,6 +4,7 @@ import authReducer from "./authSlice";
 import platosReducer from "./platosSlice";
 import categoriasReducer from "./categoriasSlice";
 import ingredientesReducer from "./ingredientesSlice";
+import resenasReducer from "./resenasSlice";
 
 export const store = configureStore({
   reducer: {
@@ -11,5 +12,6 @@ export const store = configureStore({
     platos: platosReducer,
     categorias: categoriasReducer,
     ingredientes: ingredientesReducer,
+    resenas: resenasReducer,
   },
 });
