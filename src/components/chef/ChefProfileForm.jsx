@@ -1,4 +1,4 @@
-// Formulario de la presentación del chef (especialidad, foto, biografía y descripción) para views/Perfil.
+// Formulario de la presentación del chef (especialidad, nacionalidad, foto, biografía y descripción) para views/Perfil.
 import FormField from '../comunes/FormField'
 import Alert from '../comunes/Alert'
 
@@ -20,6 +20,7 @@ function ChefProfileForm({ datos, errores, error, existe, guardando, foto, onCha
       {error !== null && <Alert title="No pudimos guardar tu presentación" messages={[error]} />}
 
       <FormField label="Tipo de cocina (especialidad)" name="especialidad" value={datos.especialidad} onChange={onChange} error={errores.especialidad} />
+      <FormField label="Nacionalidad (opcional)" name="nacionalidad" value={datos.nacionalidad} onChange={onChange} error={errores.nacionalidad} />
       <FormField label="Foto (URL de la imagen)" name="fotoUrl" type="url" value={datos.fotoUrl} onChange={onChange} error={errores.fotoUrl} />
 
       <fieldset>

@@ -48,8 +48,10 @@ const validarPassword = (datos) => ({
 
 const PASSWORD_VACIA = { actual: '', nueva: '', repetir: '' }
 
-// Presentación del chef (ChefProfileRequest): la API no valida nada, los límites son los de la columna (ENDPOINTS.md 3.6).
-const CHEF_VACIO = { especialidad: '', fotoUrl: '', biografia: '', descripcion: '' }
+// Presentación del chef (ChefProfileRequest): los largos máximos son los del backend (ENDPOINTS-CAMBIOS.md); se validan
+// acá para avisar junto al campo antes de enviar.
+const CHEF_VACIO = { especialidad: '', nacionalidad: '', fotoUrl: '', biografia: '', descripcion: '' }
+const MAX_CORTO_CHEF = 100
 const MAX_TEXTO_CHEF = 2000
 
 // Formatos y tamaño máximo de la foto subida (ENDPOINTS.md); se validan acá para avisar antes de subir.
@@ -71,6 +73,7 @@ const subirFoto = (perfilId, archivo, token) => {
 // La API devuelve null en los textos que el chef no cargó.
 const aFormularioChef = (perfil) => ({
   especialidad: perfil.especialidad ?? '',
+  nacionalidad: perfil.nacionalidad ?? '',
   fotoUrl: perfil.fotoUrl ?? '',
   biografia: perfil.biografia ?? '',
   descripcion: perfil.descripcion ?? '',
@@ -79,6 +82,8 @@ const aFormularioChef = (perfil) => ({
 // La especialidad es obligatoria acá porque es el título de la tarjeta; la foto, si hay, tiene que ser una URL.
 const validarChef = (datos) => ({
   ...(datos.especialidad.trim() === '' && { especialidad: 'Escribí tu tipo de cocina, por ejemplo "Pastas caseras".' }),
+  ...(datos.especialidad.length > MAX_CORTO_CHEF && { especialidad: `Máximo ${MAX_CORTO_CHEF} caracteres.` }),
+  ...(datos.nacionalidad.length > MAX_CORTO_CHEF && { nacionalidad: `Máximo ${MAX_CORTO_CHEF} caracteres.` }),
   ...(datos.fotoUrl.trim() !== '' && !/^https?:\/\/\S+$/.test(datos.fotoUrl.trim()) && { fotoUrl: 'Escribí una URL que empiece con http:// o https://.' }),
   ...(datos.biografia.length > MAX_TEXTO_CHEF && { biografia: `Máximo ${MAX_TEXTO_CHEF} caracteres.` }),
   ...(datos.descripcion.length > MAX_TEXTO_CHEF && { descripcion: `Máximo ${MAX_TEXTO_CHEF} caracteres.` }),
@@ -249,6 +254,7 @@ function Perfil({ onSesionVencida, onAviso }) {
       },
       body: JSON.stringify({
         especialidad: formChef.especialidad.trim(),
+        nacionalidad: formChef.nacionalidad.trim(),
         fotoUrl: formChef.fotoUrl.trim(),
         biografia: formChef.biografia.trim(),
         descripcion: formChef.descripcion.trim(),

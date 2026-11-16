@@ -216,7 +216,6 @@ function Inicio({ onAdd }) {
         </section>
       )}
 
-      {/* TODO(backend): el perfil de chef no trae el nombre de la persona ni su taller; la tarjeta no los muestra. */}
       <section aria-labelledby="h-chefs" className="mt-20 lg:mt-28">
         <h2 id="h-chefs" className="font-display text-headline-lg text-primary">Quiénes cocinan</h2>
         <p className="mt-2 max-w-xl text-body-md text-on-surface-variant">

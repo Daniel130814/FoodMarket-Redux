@@ -202,7 +202,6 @@ function DetallePlato({ onAdd, onSesionVencida, onAviso }) {
       </div>
     </div>
 
-    {/* TODO(backend): nombre, apellido y nacionalidad del chef; el perfil público solo trae especialidad, foto y textos. */}
     {perfilChef !== null && (
       <section className="mt-16" aria-labelledby="h-chef">
         <h2 id="h-chef" className="font-display text-headline-md text-primary">Quién lo cocina</h2>

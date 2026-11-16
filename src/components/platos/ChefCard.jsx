@@ -1,12 +1,14 @@
-// Tarjeta de un chef (foto, especialidad, reputación y presentación) para Inicio, el detalle del plato y el perfil del chef.
+// Tarjeta de un chef (foto, nombre, especialidad, nacionalidad, reputación y presentación) para Inicio, el detalle del plato y el perfil del chef.
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
 // Props: chef (ChefProfileResponse; los textos pueden venir vacíos o en null), verPerfil (muestra el enlace a /chef/:userId;
 // en la vista del propio chef va apagado).
-// TODO(backend): el perfil no trae el nombre del chef ni su taller; por eso no se muestran.
 function ChefCard({ chef, verPerfil = false }) {
-  const { userId, fotoUrl, especialidad, reputacion, biografia, descripcion } = chef
+  const { userId, nombre, apellido, fotoUrl, especialidad, nacionalidad, reputacion, biografia, descripcion } = chef
+
+  // Especialidad y nacionalidad pueden venir en null: solo se muestran las que haya, separadas por un punto.
+  const detalle = [especialidad, nacionalidad].filter(Boolean).join(' · ')
 
   // true si la foto no cargó (por ejemplo, una URL rota): se muestra un ícono.
   const [fotoRota, setFotoRota] = useState(false)
@@ -27,7 +29,8 @@ function ChefCard({ chef, verPerfil = false }) {
           </span>
         )}
         <div className="min-w-0">
-          <h3 className="font-display text-headline-sm text-primary">{especialidad ?? 'Chef de Appetitos'}</h3>
+          <h3 className="font-display text-headline-sm text-primary">{nombre} {apellido}</h3>
+          {detalle !== '' && <p className="text-body-sm text-on-surface-variant">{detalle}</p>}
           {/* La API devuelve reputación 0 si el chef no tiene reseñas */}
           <p className="mt-0.5 text-label-md text-primary">
             {reputacion > 0 ? (

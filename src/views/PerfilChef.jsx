@@ -132,7 +132,6 @@ function PerfilChef({ onAdd }) {
       </Link>
       <h1 className="mt-4 font-display text-display-lg-mobile text-primary lg:text-[52px] lg:leading-[56px]">Perfil del chef</h1>
 
-      {/* TODO(backend): nombre, apellido y nacionalidad del chef; el perfil público solo trae especialidad, foto y textos. */}
       {perfil === null ? (
         <p className="mt-6 text-body-md text-on-surface-variant">Este chef todavía no cargó su presentación.</p>
       ) : (
