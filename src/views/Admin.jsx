@@ -8,11 +8,10 @@ import CategoriasPanel from '../components/admin/CategoriasPanel'
 import PagosPanel from '../components/admin/PagosPanel'
 import UsuariosPanel from '../components/admin/UsuariosPanel'
 import UsuarioDetalleDialog from '../components/admin/UsuarioDetalleDialog'
+import CategoriaEditDialog from '../components/admin/CategoriaEditDialog'
 import Dialog from '../components/comunes/Dialog'
 import LoadingState from '../components/comunes/LoadingState'
 import ErrorState from '../components/comunes/ErrorState'
-import Alert from '../components/comunes/Alert'
-import FormField from '../components/comunes/FormField'
 
 const API_URL = import.meta.env.VITE_API_URL
 
@@ -621,28 +620,16 @@ function Admin({ onSesionVencida, onAviso }) {
       />
 
       {/* Diálogo de edición de categoría: se abre cuando categoriaEditando deja de ser null; confirmar guarda con PUT */}
-      <Dialog
-        open={categoriaEditando !== null}
-        title="Editar categoría"
-        message="Cambiá el nombre con el que se muestra en el catálogo y en el formulario de platos."
-        confirmLabel={guardandoCategoria ? 'Guardando...' : 'Guardar cambios'}
-        confirmVariant="primary"
-        cancelLabel="Cancelar"
-        onConfirm={guardarCategoria}
-        onCancel={cerrarEdicionCategoria}
-      >
-        <div className="mt-5 space-y-4">
-          {errorEditarCategoria !== null && <Alert title="No pudimos guardar la categoría" messages={[errorEditarCategoria]} />}
-          <FormField
-            label="Nombre de la categoría"
-            name="descripcionEditada"
-            value={descripcionEditada}
-            onChange={handleDescripcionEditadaChange}
-            error={errorDescripcionEditada}
-            autoComplete="off"
-          />
-        </div>
-      </Dialog>
+      <CategoriaEditDialog
+        abierto={categoriaEditando !== null}
+        descripcion={descripcionEditada}
+        errorDescripcion={errorDescripcionEditada}
+        errorGuardar={errorEditarCategoria}
+        guardando={guardandoCategoria}
+        onChange={handleDescripcionEditadaChange}
+        onGuardar={guardarCategoria}
+        onCerrar={cerrarEdicionCategoria}
+      />
 
       {/* Diálogo de confirmación para eliminar una categoría; cerrado, el título va vacío */}
       <Dialog
