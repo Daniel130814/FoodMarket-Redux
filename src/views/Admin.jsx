@@ -7,6 +7,7 @@ import Tabs from '../components/comunes/Tabs'
 import CategoriasPanel from '../components/admin/CategoriasPanel'
 import PagosPanel from '../components/admin/PagosPanel'
 import UsuariosPanel from '../components/admin/UsuariosPanel'
+import UsuarioDetalleDialog from '../components/admin/UsuarioDetalleDialog'
 import Dialog from '../components/comunes/Dialog'
 import LoadingState from '../components/comunes/LoadingState'
 import ErrorState from '../components/comunes/ErrorState'
@@ -51,8 +52,6 @@ const ETIQUETAS_ROL = {
   CHEF: { texto: 'Chef', clase: 'badge-sand' },
   ADMIN: { texto: 'Administrador', clase: 'badge-dark' },
 }
-
-const ROLES = ['CLIENTE', 'CHEF', 'ADMIN']
 
 const FORM_VACIO = { username: '', nombre: '', apellido: '', email: '', password: '', role: 'CLIENTE' }
 
@@ -527,48 +526,6 @@ function Admin({ onSesionVencida, onAviso }) {
       .finally(() => setCambiandoRol(false))
   }
 
-  // Contenido del diálogo de detalle según el estado (cargando, error o formulario).
-  const contenidoDetalle = () => {
-    if (cargandoDetalle) {
-      return <p className="mt-5 text-body-md text-on-surface-variant">Cargando los datos...</p>
-    }
-    if (errorDetalle !== null) {
-      return <div className="mt-5"><Alert title="No pudimos cargar el usuario" messages={[errorDetalle]} /></div>
-    }
-    if (detalle === null) {
-      return null
-    }
-    return (
-      <div className="mt-5 space-y-4">
-        {errorGuardarEdicion !== null && <Alert title="No pudimos guardar los cambios" messages={[errorGuardarEdicion]} />}
-        <FormField label="Nombre" name="nombre" value={formEdicion.nombre} onChange={handleEdicionChange} error={erroresEdicion.nombre} />
-        <FormField label="Apellido" name="apellido" value={formEdicion.apellido} onChange={handleEdicionChange} error={erroresEdicion.apellido} />
-        <FormField label="Correo electrónico" name="email" type="email" value={formEdicion.email} onChange={handleEdicionChange} error={erroresEdicion.email} />
-
-        {/* Cambio de rol: tiene su propio botón, no depende de "Guardar cambios" */}
-        <div className="border-t border-hairline pt-4">
-          <label className="label" htmlFor="rol-usuario">Rol</label>
-          <div className="flex gap-3">
-            <select id="rol-usuario" className="field" value={rolElegido} onChange={(event) => setRolElegido(event.target.value)}>
-              {ROLES.map((rol) => (
-                <option key={rol} value={rol}>{ETIQUETAS_ROL[rol].texto}</option>
-              ))}
-            </select>
-            <button
-              type="button"
-              className="btn btn-secondary flex-none"
-              onClick={cambiarRol}
-              disabled={cambiandoRol || rolElegido === detalle.role}
-            >
-              {cambiandoRol ? 'Cambiando...' : 'Cambiar rol'}
-            </button>
-          </div>
-          {errorRol !== null && <div className="mt-3"><Alert title="No pudimos cambiar el rol" messages={[errorRol]} /></div>}
-        </div>
-      </div>
-    )
-  }
-
   // Pagos de más nuevo a más viejo (se ordena una copia: sort modifica el array y el estado no se toca).
   const ordenados = [...pagos].sort((a, b) => b.fechaCreacion.localeCompare(a.fechaCreacion))
   const pendientes = pagos.filter((pago) => pago.estado === 'PENDIENTE').length
@@ -643,18 +600,25 @@ function Admin({ onSesionVencida, onAviso }) {
       />
 
       {/* Diálogo de detalle: se abre cuando usuarioAbiertoId deja de ser null; confirmar guarda con PUT */}
-      <Dialog
-        open={usuarioAbiertoId !== null}
-        title="Editar usuario"
-        message={detalle === null ? 'Datos de la cuenta.' : `@${detalle.username} · ${ETIQUETAS_ROL[detalle.role].texto}`}
-        confirmLabel={guardandoEdicion ? 'Guardando...' : 'Guardar cambios'}
-        confirmVariant="primary"
-        cancelLabel="Cerrar"
-        onConfirm={guardarEdicion}
-        onCancel={cerrarDetalle}
-      >
-        {contenidoDetalle()}
-      </Dialog>
+      <UsuarioDetalleDialog
+        abierto={usuarioAbiertoId !== null}
+        detalle={detalle}
+        cargando={cargandoDetalle}
+        errorCarga={errorDetalle}
+        etiquetasRol={ETIQUETAS_ROL}
+        form={formEdicion}
+        errores={erroresEdicion}
+        errorGuardar={errorGuardarEdicion}
+        guardando={guardandoEdicion}
+        rolElegido={rolElegido}
+        cambiandoRol={cambiandoRol}
+        errorRol={errorRol}
+        onChange={handleEdicionChange}
+        onRolChange={(event) => setRolElegido(event.target.value)}
+        onCambiarRol={cambiarRol}
+        onGuardar={guardarEdicion}
+        onCerrar={cerrarDetalle}
+      />
 
       {/* Diálogo de edición de categoría: se abre cuando categoriaEditando deja de ser null; confirmar guarda con PUT */}
       <Dialog
