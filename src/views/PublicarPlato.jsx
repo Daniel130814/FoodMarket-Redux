@@ -1,5 +1,6 @@
 // Formulario para publicar (/publicar) o editar (/publicar/:id) un plato. Solo CHEF; los campos son los de PlatoRequest.
 import { useEffect, useState } from 'react'
+import { useSelector } from 'react-redux'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import ImageUrlList from '../components/chef/ImageUrlList'
 import ImageFilePicker from '../components/chef/ImageFilePicker'
@@ -117,8 +118,11 @@ const validar = (datos, cantidadArchivos) => {
   }
 }
 
-// Props: token (JWT), userId (chef con sesión; evita editar platos ajenos), onSesionVencida (401), onAviso (Toast).
-function PublicarPlato({ token, userId, onSesionVencida, onAviso }) {
+// Props: onSesionVencida (401), onAviso (Toast). El token y el userId (evita editar platos ajenos) salen del store.
+function PublicarPlato({ onSesionVencida, onAviso }) {
+  // Token y userId del store (ruta privada).
+  const token = useSelector((state) => state.auth.token)
+  const userId = useSelector((state) => state.auth.user?.userId)
   const navigate = useNavigate()
 
   // Sin id en la URL (/publicar) se crea; con id (/publicar/10) se edita.

@@ -1,6 +1,7 @@
 // Perfil (/perfil, cualquier rol con sesión): datos de la cuenta (GET y PUT /users/me), cambio de contraseña (PUT /users/me/password)
 // y, para el CHEF, su presentación pública (GET, POST y PUT /chef-profiles).
 import { useEffect, useState } from 'react'
+import { useSelector } from 'react-redux'
 import ContenidoAsync from '../components/comunes/ContenidoAsync'
 import FormField from '../components/comunes/FormField'
 import Alert from '../components/comunes/Alert'
@@ -89,8 +90,10 @@ const validarChef = (datos) => ({
   ...(datos.descripcion.length > MAX_TEXTO_CHEF && { descripcion: `Máximo ${MAX_TEXTO_CHEF} caracteres.` }),
 })
 
-// Props: token (JWT), onSesionVencida (401), onPerfilActualizado (le pasa a App el usuario guardado para el Header), onAviso (Toast).
-function Perfil({ token, onSesionVencida, onPerfilActualizado, onAviso }) {
+// Props: onSesionVencida (401), onPerfilActualizado (le pasa a App el usuario guardado para el Header), onAviso (Toast). El token sale del store.
+function Perfil({ onSesionVencida, onPerfilActualizado, onAviso }) {
+  // Token del store (ruta privada).
+  const token = useSelector((state) => state.auth.token)
   const [usuario, setUsuario] = useState(null)
 
   const [cargando, setCargando] = useState(true)

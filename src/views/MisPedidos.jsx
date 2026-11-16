@@ -1,5 +1,6 @@
 // Mis pedidos (/pedidos, CLIENTE): pedidos en curso y anteriores; permite cancelar los pendientes, pagar y reseñar.
 import { useEffect, useState } from 'react'
+import { useSelector } from 'react-redux'
 import OrderCard from '../components/pedidos/OrderCard'
 import Tabs from '../components/comunes/Tabs'
 import Dialog from '../components/comunes/Dialog'
@@ -53,8 +54,10 @@ const ORDEN_ESTADOS = ['PENDIENTE', 'CONFIRMADO', 'EN_PREPARACION', 'ENVIADO', '
 // Pasos que dibuja OrderTrack.
 const PASOS_SEGUIMIENTO = ORDEN_ESTADOS.map((estado) => ({ estado, etiqueta: ETIQUETAS_ESTADO[estado] }))
 
-// Props: token (JWT), onSesionVencida (cierra la sesión ante un 401), onAviso (muestra un Toast).
-function MisPedidos({ token, onSesionVencida, onAviso }) {
+// Props: onSesionVencida (cierra la sesión ante un 401), onAviso (muestra un Toast). El token sale del store.
+function MisPedidos({ onSesionVencida, onAviso }) {
+  // Token del store (ruta privada).
+  const token = useSelector((state) => state.auth.token)
   const [pedidos, setPedidos] = useState([])
 
   // Un pedido puede tener varios pagos (uno rechazado y un reintento).
