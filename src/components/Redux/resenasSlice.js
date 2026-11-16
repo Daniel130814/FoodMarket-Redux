@@ -22,6 +22,17 @@ export const fetchResenas = createAsyncThunk(
   },
 );
 
+// DELETE /resenas/{id} (autor o ADMIN): ruta privada, el token viaja en el argumento. Devuelve el id borrado.
+export const deleteResena = createAsyncThunk(
+  "resenas/deleteResena",
+  async ({ id, token }) => {
+    await axios.delete(`${API_URL}/resenas/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return id;
+  },
+);
+
 const resenasSlice = createSlice({
   name: "resenas",
   initialState: { items: [], loading: false, error: null },
@@ -51,6 +62,10 @@ const resenasSlice = createSlice({
       .addCase(fetchResenas.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message;
+      })
+      // Solo fulfilled: el borrado no toca loading ni error de la lista. Se saca la reseña sin volver a pedirlas.
+      .addCase(deleteResena.fulfilled, (state, action) => {
+        state.items = state.items.filter((resena) => resena.id !== action.payload);
       });
   },
 });

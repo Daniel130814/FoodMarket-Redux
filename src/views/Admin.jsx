@@ -1,17 +1,21 @@
 // Administración (ruta /admin, solo ADMIN). Pestaña Pagos: aprobar, rechazar o reembolsar (aprobar habilita a los chefs).
 // Pestaña Usuarios: listar, crear y abrir el detalle para editar datos y cambiar el rol.
 // Pestaña Categorías: listar, crear, editar y eliminar las categorías de los platos.
+// Pestaña Reseñas: listar todas las reseñas (Redux) y eliminar las que no corresponden.
 import { useEffect, useState } from 'react'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import Tabs from '../components/comunes/Tabs'
 import CategoriasPanel from '../components/admin/CategoriasPanel'
 import PagosPanel from '../components/admin/PagosPanel'
 import UsuariosPanel from '../components/admin/UsuariosPanel'
 import UsuarioDetalleDialog from '../components/admin/UsuarioDetalleDialog'
 import CategoriaEditDialog from '../components/admin/CategoriaEditDialog'
+import ResenasPanel from '../components/admin/ResenasPanel'
 import Dialog from '../components/comunes/Dialog'
 import LoadingState from '../components/comunes/LoadingState'
 import ErrorState from '../components/comunes/ErrorState'
+import { fetchPlatos } from '../components/Redux/platosSlice'
+import { deleteResena, fetchResenas } from '../components/Redux/resenasSlice'
 
 const API_URL = import.meta.env.VITE_API_URL
 
@@ -93,6 +97,15 @@ const validarEdicion = (datos) => ({
 function Admin({ onSesionVencida, onAviso }) {
   // Token del store (ruta privada).
   const token = useSelector((state) => state.auth.token)
+
+  // Reseñas y platos vienen del store (los platos sirven para ponerle nombre a cada reseña).
+  const dispatch = useDispatch()
+  const { items: resenas, loading: cargandoResenas, error: errorResenas } = useSelector((state) => state.resenas)
+  const platos = useSelector((state) => state.platos.items)
+
+  // Diálogo de confirmación para eliminar una reseña: la reseña elegida o null si está cerrado.
+  const [resenaAEliminar, setResenaAEliminar] = useState(null)
+
   const [pagos, setPagos] = useState([])
 
   const [cargando, setCargando] = useState(true)
@@ -170,6 +183,12 @@ function Admin({ onSesionVencida, onAviso }) {
     // onSesionVencida queda afuera de las dependencias: App la recrea en cada render y el GET se repetiría.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
+
+  // Reseñas y platos del store, al abrir (rutas públicas, sin token).
+  useEffect(() => {
+    dispatch(fetchResenas())
+    dispatch(fetchPlatos())
+  }, [dispatch])
 
   // GET /users/{id} cada vez que se abre el detalle de un usuario.
   useEffect(() => {
@@ -529,10 +548,45 @@ function Admin({ onSesionVencida, onAviso }) {
   const ordenados = [...pagos].sort((a, b) => b.fechaCreacion.localeCompare(a.fechaCreacion))
   const pendientes = pagos.filter((pago) => pago.estado === 'PENDIENTE').length
 
+  // Cada reseña trae solo platoId: el nombre sale de los platos del store (los no publicados quedan como "Plato n.º").
+  const resenasConPlato = resenas.map((resena) => ({
+    ...resena,
+    platoNombre: platos.find((plato) => plato.id === resena.platoId)?.nombre ?? `Plato n.º ${resena.platoId}`,
+  }))
+
+  // Elimina la reseña elegida (DELETE /resenas/{id}); el slice la saca de la lista. Los errores salen en el Toast.
+  const eliminarResena = () => {
+    const { id } = resenaAEliminar
+    setResenaAEliminar(null)
+
+    dispatch(deleteResena({ id, token })).then((resultado) => {
+      if (resultado.type === 'resenas/deleteResena/fulfilled') {
+        onAviso('Eliminaste la reseña')
+        return
+      }
+      // El mensaje de Axios termina en el código HTTP ("Request failed with status code 403").
+      const mensaje = resultado.error.message
+      if (mensaje.includes('401')) {
+        onSesionVencida()
+        return
+      }
+      if (mensaje.includes('403')) {
+        onAviso('No tenés permisos para eliminar reseñas', 'error')
+        return
+      }
+      if (mensaje.includes('404')) {
+        onAviso('La reseña ya no existe', 'error')
+        return
+      }
+      onAviso('No pudimos eliminar la reseña', 'error')
+    })
+  }
+
   const pestanas = [
     { id: 'pagos', label: 'Pagos', count: pendientes },
     { id: 'usuarios', label: 'Usuarios', count: usuarios.length },
     { id: 'categorias', label: 'Categorías', count: categorias.length },
+    { id: 'resenas', label: 'Reseñas', count: resenas.length },
   ]
 
   return (
@@ -582,6 +636,15 @@ function Admin({ onSesionVencida, onAviso }) {
             onCrear={crearCategoria}
             onEditar={abrirEdicionCategoria}
             onEliminar={setCategoriaAEliminar}
+          />
+        )}
+
+        {pestana === 'resenas' && (
+          <ResenasPanel
+            resenas={resenasConPlato}
+            cargando={cargandoResenas}
+            error={errorResenas}
+            onEliminar={setResenaAEliminar}
           />
         )}
       </div>
@@ -640,6 +703,17 @@ function Admin({ onSesionVencida, onAviso }) {
         cancelLabel="Cancelar"
         onConfirm={eliminarCategoria}
         onCancel={() => setCategoriaAEliminar(null)}
+      />
+
+      {/* Diálogo de confirmación para eliminar una reseña; cerrado, el título va vacío */}
+      <Dialog
+        open={resenaAEliminar !== null}
+        title={resenaAEliminar === null ? '' : `¿Eliminar la reseña de ${resenaAEliminar.platoNombre}?`}
+        message="La reseña se borra para todos y cambia la calificación del plato. No se puede deshacer."
+        confirmLabel="Eliminar"
+        cancelLabel="Cancelar"
+        onConfirm={eliminarResena}
+        onCancel={() => setResenaAEliminar(null)}
       />
     </>
   )
