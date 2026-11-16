@@ -1,11 +1,12 @@
 // Mis publicaciones (/mis-publicaciones, solo CHEF): sus platos en cualquier estado, con stock, pausa, descuento y eliminar.
 import { useEffect, useState } from 'react'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { Link } from 'react-router-dom'
 import FilterChips from '../components/platos/FilterChips'
 import PublicationRow from '../components/chef/PublicationRow'
 import Dialog from '../components/comunes/Dialog'
 import ContenidoAsync from '../components/comunes/ContenidoAsync'
+import { fetchCategorias } from '../components/Redux/categoriasSlice'
 
 const API_URL = import.meta.env.VITE_API_URL
 
@@ -30,9 +31,10 @@ const leerRespuesta = (response) =>
 function MisPublicaciones({ onSesionVencida, onAviso }) {
   // Token del store (ruta privada).
   const token = useSelector((state) => state.auth.token)
-  // Platos del chef y categorías (el PUT las pide por id y el plato las trae por nombre).
+  // Platos del chef y categorías (el PUT las pide por id y el plato las trae por nombre). Las categorías vienen del store.
+  const dispatch = useDispatch()
   const [platos, setPlatos] = useState([])
-  const [categorias, setCategorias] = useState([])
+  const { items: categorias, loading: cargandoCategorias, error: errorCategorias } = useSelector((state) => state.categorias)
 
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
@@ -48,19 +50,19 @@ function MisPublicaciones({ onSesionVencida, onAviso }) {
   const [descuentoTexto, setDescuentoTexto] = useState('')
   const [errorDescuento, setErrorDescuento] = useState(null)
 
-  // Al abrir: GET /platos/mis-platos (con token, todos los estados) y GET /categories (público), juntos.
+  // Al abrir: categorías (público, a Redux).
   useEffect(() => {
-    // Se cancela si salimos de la vista antes de que respondan.
+    dispatch(fetchCategorias())
+  }, [dispatch])
+
+  // Al abrir: GET /platos/mis-platos (con token, todos los estados).
+  useEffect(() => {
+    // Se cancela si salimos de la vista antes de que responda.
     const controlador = new AbortController()
 
-    Promise.all([
-      fetch(`${API_URL}/platos/mis-platos`, { headers: { Authorization: `Bearer ${token}` }, signal: controlador.signal }).then(leerRespuesta),
-      fetch(`${API_URL}/categories`, { signal: controlador.signal }).then(leerRespuesta),
-    ])
-      .then(([listaPlatos, listaCategorias]) => {
-        setPlatos(listaPlatos ?? [])
-        setCategorias(listaCategorias ?? [])
-      })
+    fetch(`${API_URL}/platos/mis-platos`, { headers: { Authorization: `Bearer ${token}` }, signal: controlador.signal })
+      .then(leerRespuesta)
+      .then((listaPlatos) => setPlatos(listaPlatos ?? []))
       .catch((fallo) => {
         if (fallo.name === 'AbortError') {
           return
@@ -258,8 +260,8 @@ function MisPublicaciones({ onSesionVencida, onAviso }) {
           <span></span><span>Plato</span><span>Precio</span><span>Stock</span><span className="text-right">Acciones</span>
         </div>
         <ContenidoAsync
-          cargando={cargando}
-          error={error}
+          cargando={cargando || cargandoCategorias}
+          error={error ?? errorCategorias}
           vacio={platosVisibles.length === 0}
           mensajeCarga="Cargando tus publicaciones..."
           mensajeVacio="No tenés platos en este estado."
