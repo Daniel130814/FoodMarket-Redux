@@ -1,8 +1,9 @@
-// Lista de reseñas (de un plato o de un chef).
+// Lista de reseñas (de un plato o de un chef), con el nombre de quien la escribió.
 
-// Props: reviews ({ id, calificacion, comentario, fechaCreacion, clienteId, platoNombre opcional }), title (encabezado),
-// onDelete (resena, opcional): si viene, cada reseña muestra "Eliminar" (lo pasa solo el ADMIN). La API no trae el autor.
-function ReviewList({ reviews, title = 'Reseñas de quienes lo pidieron', onDelete }) {
+// Props: reviews ({ id, calificacion, comentario, fechaCreacion, clienteNombre, platoNombre }), title (encabezado),
+// showPlato (muestra de qué plato es cada reseña: sirve en el perfil de un chef, no en el detalle de un plato),
+// onDelete (resena, opcional): si viene, cada reseña muestra "Eliminar" (lo pasa solo el ADMIN).
+function ReviewList({ reviews, title = 'Reseñas de quienes lo pidieron', showPlato = false, onDelete }) {
   const formatearFecha = (fechaIso) =>
     new Date(fechaIso).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })
 
@@ -15,12 +16,12 @@ function ReviewList({ reviews, title = 'Reseñas de quienes lo pidieron', onDele
         {reviews.map((resena) => (
           <li key={resena.id} className="py-6 first:pt-0 last:pb-0">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-body-sm text-on-surface-variant">{formatearFecha(resena.fechaCreacion)}</p>
+              <p className="text-body-sm text-on-surface-variant">{resena.clienteNombre} · {formatearFecha(resena.fechaCreacion)}</p>
               <p className="text-secondary" aria-label={`${resena.calificacion} de 5 estrellas`}>
                 {'★'.repeat(resena.calificacion)}
               </p>
             </div>
-            {resena.platoNombre !== undefined && (
+            {showPlato && (
               <p className="mt-2 text-label-md text-primary">{resena.platoNombre}</p>
             )}
             <p className="mt-3 max-w-2xl text-body-md text-on-surface">{resena.comentario}</p>

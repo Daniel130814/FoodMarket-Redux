@@ -14,7 +14,6 @@ import ResenasPanel from '../components/admin/ResenasPanel'
 import Dialog from '../components/comunes/Dialog'
 import LoadingState from '../components/comunes/LoadingState'
 import ErrorState from '../components/comunes/ErrorState'
-import { fetchPlatos } from '../components/Redux/platosSlice'
 import { deleteResena, fetchResenas } from '../components/Redux/resenasSlice'
 
 const API_URL = import.meta.env.VITE_API_URL
@@ -98,10 +97,9 @@ function Admin({ onSesionVencida, onAviso }) {
   // Token del store (ruta privada).
   const token = useSelector((state) => state.auth.token)
 
-  // Reseñas y platos vienen del store (los platos sirven para ponerle nombre a cada reseña).
+  // Las reseñas vienen del store (cada una trae el nombre de su plato y de quien la escribió).
   const dispatch = useDispatch()
   const { items: resenas, loading: cargandoResenas, error: errorResenas } = useSelector((state) => state.resenas)
-  const platos = useSelector((state) => state.platos.items)
 
   // Diálogo de confirmación para eliminar una reseña: la reseña elegida o null si está cerrado.
   const [resenaAEliminar, setResenaAEliminar] = useState(null)
@@ -184,10 +182,9 @@ function Admin({ onSesionVencida, onAviso }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
 
-  // Reseñas y platos del store, al abrir (rutas públicas, sin token).
+  // Las reseñas, al abrir (ruta pública, sin token).
   useEffect(() => {
     dispatch(fetchResenas())
-    dispatch(fetchPlatos())
   }, [dispatch])
 
   // GET /users/{id} cada vez que se abre el detalle de un usuario.
@@ -548,12 +545,6 @@ function Admin({ onSesionVencida, onAviso }) {
   const ordenados = [...pagos].sort((a, b) => b.fechaCreacion.localeCompare(a.fechaCreacion))
   const pendientes = pagos.filter((pago) => pago.estado === 'PENDIENTE').length
 
-  // Cada reseña trae solo platoId: el nombre sale de los platos del store (los no publicados quedan como "Plato n.º").
-  const resenasConPlato = resenas.map((resena) => ({
-    ...resena,
-    platoNombre: platos.find((plato) => plato.id === resena.platoId)?.nombre ?? `Plato n.º ${resena.platoId}`,
-  }))
-
   // Elimina la reseña elegida (DELETE /resenas/{id}); el slice la saca de la lista. Los errores salen en el Toast.
   const eliminarResena = () => {
     const { id } = resenaAEliminar
@@ -641,7 +632,7 @@ function Admin({ onSesionVencida, onAviso }) {
 
         {pestana === 'resenas' && (
           <ResenasPanel
-            resenas={resenasConPlato}
+            resenas={resenas}
             cargando={cargandoResenas}
             error={errorResenas}
             onEliminar={setResenaAEliminar}

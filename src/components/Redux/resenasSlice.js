@@ -1,4 +1,4 @@
-// Reseñas en Redux (GET públicos): las de un plato (detalle) y todas (perfil del chef, que las recorta por sus platos).
+// Reseñas en Redux (GET públicos): las de un plato (detalle), las de un chef (perfil del chef) y todas (catálogo, inicio, admin).
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
 
@@ -11,6 +11,16 @@ export const fetchResenasByPlato = createAsyncThunk(
       `${API_URL}/resenas/plato/${platoId}`,
     );
     return cuerpo.data ?? []; // la lista vacía llega como null
+  },
+);
+
+export const fetchResenasByChef = createAsyncThunk(
+  "resenas/fetchResenasByChef",
+  async (chefId) => {
+    const { data: cuerpo } = await axios.get(
+      `${API_URL}/resenas/chef/${chefId}`,
+    );
+    return cuerpo.data ?? []; // sin reseñas llega null
   },
 );
 
@@ -48,6 +58,18 @@ const resenasSlice = createSlice({
         state.items = action.payload;
       })
       .addCase(fetchResenasByPlato.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message;
+      })
+      .addCase(fetchResenasByChef.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchResenasByChef.fulfilled, (state, action) => {
+        state.loading = false;
+        state.items = action.payload;
+      })
+      .addCase(fetchResenasByChef.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message;
       })

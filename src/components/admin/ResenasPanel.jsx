@@ -1,7 +1,7 @@
 // Pestaña Reseñas de views/Admin: todas las reseñas con su botón Eliminar. No hace fetch: todo viene por props.
 import ContenidoAsync from '../comunes/ContenidoAsync'
 
-// Props: resenas ({ id, calificacion, comentario, fechaCreacion, platoNombre, clienteId }); cargando; error (texto o
+// Props: resenas ({ id, calificacion, comentario, fechaCreacion, platoNombre, clienteNombre }); cargando; error (texto o
 // null); onEliminar (resena): el padre pide confirmar.
 function ResenasPanel({ resenas, cargando, error, onEliminar }) {
   const formatearFecha = (fechaIso) =>
@@ -24,7 +24,7 @@ function ResenasPanel({ resenas, cargando, error, onEliminar }) {
             <div className="min-w-0 flex-1 basis-[220px]">
               <h2 className="font-display text-headline-sm text-primary">{resena.platoNombre}</h2>
               <p className="text-body-sm text-on-surface-variant">
-                {formatearFecha(resena.fechaCreacion)} · Cliente n.º {resena.clienteId}
+                {formatearFecha(resena.fechaCreacion)} · {resena.clienteNombre}
               </p>
               {resena.comentario && <p className="mt-2 text-body-md text-on-surface">{resena.comentario}</p>}
             </div>

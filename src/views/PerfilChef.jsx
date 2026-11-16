@@ -1,4 +1,4 @@
-// Perfil público de un chef (/chef/:userId): su presentación, sus platos y las reseñas que recibió (GET /chef-profiles, /platos y /resenas; los dos últimos en Redux).
+// Perfil público de un chef (/chef/:userId): su presentación, sus platos y las reseñas que recibió (GET /chef-profiles; /platos?chefId y /resenas/chef/{id} en Redux).
 import { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Link, useNavigate, useParams } from 'react-router-dom'
@@ -9,7 +9,7 @@ import EmptyState from '../components/comunes/EmptyState'
 import LoadingState from '../components/comunes/LoadingState'
 import ErrorState from '../components/comunes/ErrorState'
 import { fetchPlatos } from '../components/Redux/platosSlice'
-import { fetchResenas } from '../components/Redux/resenasSlice'
+import { fetchResenasByChef } from '../components/Redux/resenasSlice'
 
 // URL base del backend (viene de .env).
 const API_URL = import.meta.env.VITE_API_URL
@@ -42,21 +42,21 @@ function PerfilChef({ onAdd }) {
 
   // Los platos y las reseñas vienen del store; el perfil todavía se pide acá.
   const dispatch = useDispatch()
-  const { items: todosLosPlatos, loading: cargandoPlatos, error: errorPlatos } = useSelector((state) => state.platos)
-  const { items: todasLasResenas, loading: cargandoResenas, error: errorResenas } = useSelector((state) => state.resenas)
+  const { items: platos, loading: cargandoPlatos, error: errorPlatos } = useSelector((state) => state.platos)
+  const { items: resenas, loading: cargandoResenas, error: errorResenas } = useSelector((state) => state.resenas)
   const [perfil, setPerfil] = useState(null)
 
   // cargandoDatos arranca en true solo si hay que pedir datos (id válido).
   const [cargandoDatos, setCargandoDatos] = useState(idValido)
   const [errorDatos, setErrorDatos] = useState(null)
 
-  // Al abrir: GET /platos y /resenas (a Redux). Rutas públicas: sin token.
+  // Al abrir o si cambia el chef: GET /platos?chefId y /resenas/chef/{id} (a Redux). Rutas públicas: sin token.
   useEffect(() => {
     if (idValido) {
-      dispatch(fetchPlatos())
-      dispatch(fetchResenas())
+      dispatch(fetchPlatos({ chefId }))
+      dispatch(fetchResenasByChef(chefId))
     }
-  }, [dispatch, idValido])
+  }, [dispatch, chefId, idValido])
 
   // Al abrir o si cambia el chef: GET /chef-profiles. Ruta pública: sin token.
   useEffect(() => {
@@ -88,19 +88,12 @@ function PerfilChef({ onAdd }) {
     return () => controlador.abort()
   }, [chefId, idValido])
 
-  // La API no filtra por chef: GET /platos ignora chefId y no hay reseñas por chef, así que se recorta acá.
-  const platos = todosLosPlatos.filter((plato) => plato.chefId === chefId)
-  const resenas = todasLasResenas
-    .filter((resena) => platos.some((plato) => plato.id === resena.platoId))
-    // Cada reseña lleva el nombre de su plato para que se entienda de qué es.
-    .map((resena) => ({
-      ...resena,
-      platoNombre: platos.find((plato) => plato.id === resena.platoId).nombre,
-    }))
+  // Con 404 (el usuario no existe o no es chef) el mensaje de Axios termina en "404": no es una falla, es "no disponible".
+  const noExiste = errorResenas !== null && errorResenas.includes('404')
 
   // Con un id inválido no se pidió nada: se ignora lo que el store traiga de otra vista.
   const cargando = idValido && (cargandoPlatos || cargandoResenas || cargandoDatos)
-  const error = idValido ? (errorPlatos ?? errorResenas ?? errorDatos) : null
+  const error = idValido && !noExiste ? (errorPlatos ?? errorResenas ?? errorDatos) : null
 
   if (cargando) {
     return <LoadingState message="Cargando el perfil del chef..." />
@@ -110,7 +103,7 @@ function PerfilChef({ onAdd }) {
   }
 
   // Sin perfil ni platos no hay nada que mostrar: el chef no existe, no cocina o no tiene nada publicado.
-  if (!idValido || (perfil === null && platos.length === 0)) {
+  if (!idValido || noExiste || (perfil === null && platos.length === 0)) {
     return (
       <EmptyState
         title="Este chef no está disponible"
@@ -176,7 +169,7 @@ function PerfilChef({ onAdd }) {
 
       {tieneResenas && (
         <div className="mt-16">
-          <ReviewList reviews={resenas} title="Lo que dicen de sus platos" />
+          <ReviewList reviews={resenas} title="Lo que dicen de sus platos" showPlato />
         </div>
       )}
     </>
