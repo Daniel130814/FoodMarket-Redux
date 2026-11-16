@@ -1,6 +1,7 @@
 // Encabezado fijo (sticky) de las páginas principales.
 
 import { useState } from 'react'
+import { useSelector } from 'react-redux'
 import { Link, NavLink } from 'react-router-dom'
 import Logo from './Logo'
 
@@ -9,8 +10,11 @@ const ENLACES = [
   { texto: 'Platos', ruta: '/catalogo' },
 ]
 
-// Props: cartCount (número de la insignia), sesion (null o { token, userId, role, nombre }; decide qué se muestra), onLogout (App cierra la sesión).
-function Header({ cartCount, sesion, onLogout }) {
+// Props: cartCount (número de la insignia), onLogout (App cierra la sesión). La sesión se lee del store.
+function Header({ cartCount, onLogout }) {
+  // Usuario logueado (null sin sesión): decide qué se muestra.
+  const sesion = useSelector((state) => state.auth.user)
+
   // Menú móvil abierto o cerrado (UI propia del Header).
   const [menuOpen, setMenuOpen] = useState(false)
 

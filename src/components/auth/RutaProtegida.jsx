@@ -1,9 +1,12 @@
 // Protege una ruta según la sesión y el rol. Se usa en App.jsx envolviendo las vistas privadas.
+import { useSelector } from 'react-redux'
 import { Navigate, useLocation } from 'react-router-dom'
 
-// Props: sesion (null o { token, userId, role, nombre }), rolesPermitidos (por ejemplo ['CLIENTE']), children (la vista a proteger).
-function RutaProtegida({ sesion, rolesPermitidos, children }) {
+// Props: rolesPermitidos (por ejemplo ['CLIENTE']), children (la vista a proteger). La sesión se lee del store.
+function RutaProtegida({ rolesPermitidos, children }) {
   const location = useLocation()
+  // Usuario logueado (null sin sesión).
+  const sesion = useSelector((state) => state.auth.user)
 
   // <Navigate> redirige dentro de la app; "replace" evita que el botón "atrás" vuelva a la ruta bloqueada en bucle.
 
