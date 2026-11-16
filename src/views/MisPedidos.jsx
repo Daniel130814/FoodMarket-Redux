@@ -49,8 +49,9 @@ const ORDEN_ESTADOS = ['PENDIENTE', 'CONFIRMADO', 'EN_PREPARACION', 'ENVIADO', '
 // Pasos que dibuja OrderTrack.
 const PASOS_SEGUIMIENTO = ORDEN_ESTADOS.map((estado) => ({ estado, etiqueta: ETIQUETAS_ESTADO[estado] }))
 
-// Props: onSesionVencida (cierra la sesión ante un 401), onAviso (muestra un Toast). El token sale del store.
-function MisPedidos({ onSesionVencida, onAviso }) {
+// Props: onSesionVencida (cierra la sesión ante un 401), onAviso (muestra un Toast), onVolverAPedir (App agrega los platos
+// a la cesta). El token sale del store.
+function MisPedidos({ onSesionVencida, onAviso, onVolverAPedir }) {
   // Token del store (ruta privada).
   const token = useSelector((state) => state.auth.token)
   const [pedidos, setPedidos] = useState([])
@@ -239,6 +240,7 @@ function MisPedidos({ onSesionVencida, onAviso }) {
           onCancel={setPedidoACancelarId}
           onPay={abrirPago}
           onReview={abrirResena}
+          onReorder={onVolverAPedir}
         />
       </div>
 

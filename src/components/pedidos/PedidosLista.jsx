@@ -2,8 +2,8 @@
 import OrderCard from './OrderCard'
 
 // Props: pedidos; emptyMessage (texto si no hay); steps (pasos del seguimiento); getPayment (pedidoId -> último pago o
-// null); reviewedPlatoIds; onCancel, onPay y onReview: se pasan tal cual a OrderCard.
-function PedidosLista({ pedidos, emptyMessage, steps, getPayment, reviewedPlatoIds, onCancel, onPay, onReview }) {
+// null); reviewedPlatoIds; onCancel, onPay, onReview y onReorder: se pasan tal cual a OrderCard.
+function PedidosLista({ pedidos, emptyMessage, steps, getPayment, reviewedPlatoIds, onCancel, onPay, onReview, onReorder }) {
   return (
     <div role="tabpanel" className="mt-8 space-y-6">
       {pedidos.length === 0 && <p className="text-body-md text-on-surface-variant">{emptyMessage}</p>}
@@ -17,6 +17,7 @@ function PedidosLista({ pedidos, emptyMessage, steps, getPayment, reviewedPlatoI
           onCancel={onCancel}
           onPay={onPay}
           onReview={onReview}
+          onReorder={onReorder}
         />
       ))}
     </div>

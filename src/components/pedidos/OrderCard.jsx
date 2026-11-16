@@ -2,8 +2,9 @@
 import OrderTrack from './OrderTrack'
 
 // Props: order (OrderResponse), steps (pasos { estado, etiqueta } del seguimiento), payment (último pago o null),
-// reviewedPlatoIds (platos ya reseñados), onCancel (pedidoId), onPay (pedidoId), onReview (detalle del plato).
-function OrderCard({ order, steps, payment, reviewedPlatoIds, onCancel, onPay, onReview }) {
+// reviewedPlatoIds (platos ya reseñados), onCancel (pedidoId), onPay (pedidoId), onReview (detalle del plato),
+// onReorder (detalles del pedido: los vuelve a agregar a la cesta).
+function OrderCard({ order, steps, payment, reviewedPlatoIds, onCancel, onPay, onReview, onReorder }) {
   const formatear = (monto) => `$${monto.toLocaleString('es-AR')}`
 
   const fecha = new Date(order.fechaCreacion).toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })
@@ -86,6 +87,19 @@ function OrderCard({ order, steps, payment, reviewedPlatoIds, onCancel, onPay, o
               {payment === null ? 'Pagar' : 'Pagar de nuevo'}
             </button>
           )}
+        </div>
+      )}
+
+      {/* Un pedido terminado (entregado o cancelado) se puede repetir */}
+      {(order.estado === 'ENTREGADO' || order.estado === 'CANCELADO') && (
+        <div className="mt-3 flex justify-end">
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => onReorder(order.subPedidos.flatMap((subPedido) => subPedido.detalles))}
+          >
+            Volver a pedir
+          </button>
         </div>
       )}
 

@@ -88,20 +88,60 @@ function App() {
     avisar(mensajeDe(fallo), 'error')
   }
 
-  // Agrega un plato a la cesta (POST). Si ya estaba, el backend suma la cantidad y valida el stock.
-  const agregar = (plato, cantidad) => {
+  // POST /carrito/items: si el plato ya estaba, el backend suma la cantidad y valida el stock. Devuelve la cesta.
+  const pedirAgregar = (platoId, cantidad) =>
     fetch(`${API_URL}/carrito/items`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`, // ruta privada
       },
-      body: JSON.stringify({ platoId: plato.id, cantidad }),
-    })
-      .then(leerRespuesta)
+      body: JSON.stringify({ platoId, cantidad }),
+    }).then(leerRespuesta)
+
+  // Agrega un plato a la cesta.
+  const agregar = (plato, cantidad) => {
+    pedirAgregar(plato.id, cantidad)
       .then((carritoServidor) => {
         setCarrito(carritoServidor)
         avisar(`Agregaste ${plato.nombre} a tu carrito`)
+      })
+      .catch(manejarFallo)
+  }
+
+  // Vuelve a pedir un pedido anterior: agrega sus platos de a uno (cada respuesta trae la cesta completa, así que van en
+  // fila y no a la vez). Los que no se puedan (sin stock, pausados) se saltean y se nombran en el aviso.
+  const volverAPedir = (detalles) => {
+    detalles
+      .reduce(
+        (cadena, detalle) =>
+          cadena.then((resultado) =>
+            pedirAgregar(detalle.platoId, detalle.cantidad)
+              .then((carritoServidor) => {
+                setCarrito(carritoServidor)
+                return { ...resultado, agregados: resultado.agregados + 1 }
+              })
+              .catch((fallo) => {
+                if (fallo.status === 401) {
+                  throw fallo
+                }
+                return { ...resultado, noDisponibles: [...resultado.noDisponibles, detalle.platoNombre] }
+              }),
+          ),
+        Promise.resolve({ agregados: 0, noDisponibles: [] }),
+      )
+      .then(({ agregados, noDisponibles }) => {
+        if (noDisponibles.length === 0) {
+          avisar(`Agregamos ${agregados} ${agregados === 1 ? 'plato' : 'platos'} a tu cesta`)
+        } else {
+          avisar(
+            `Agregamos ${agregados} de ${detalles.length}. Sin stock o no disponibles: ${noDisponibles.join(', ')}`,
+            agregados === 0 ? 'error' : 'exito',
+          )
+        }
+        if (agregados > 0) {
+          navigate('/cesta')
+        }
       })
       .catch(manejarFallo)
   }
@@ -280,7 +320,7 @@ function App() {
               path="/pedidos"
               element={protegida(
                 ['CLIENTE'],
-                <MisPedidos onSesionVencida={sesionVencida} onAviso={avisar} />
+                <MisPedidos onSesionVencida={sesionVencida} onAviso={avisar} onVolverAPedir={volverAPedir} />
               )}
             />
 
