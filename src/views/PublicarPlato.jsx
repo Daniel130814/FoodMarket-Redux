@@ -8,6 +8,7 @@ import CategoryPicker from '../components/platos/CategoryPicker'
 import IngredientRows from '../components/platos/IngredientRows'
 import EmptyState from '../components/comunes/EmptyState'
 import Alert from '../components/comunes/Alert'
+import FormField from '../components/comunes/FormField'
 import LoadingState from '../components/comunes/LoadingState'
 import ErrorState from '../components/comunes/ErrorState'
 import { fetchCategorias } from '../components/Redux/categoriasSlice'
@@ -377,24 +378,7 @@ function PublicarPlato({ onSesionVencida, onAviso }) {
       )}
 
       <form className="mt-10 max-w-3xl space-y-8" onSubmit={handleSubmit} noValidate>
-        <div>
-          <label className="label" htmlFor="nombre">Nombre</label>
-          <input
-            id="nombre"
-            name="nombre"
-            type="text"
-            className="field"
-            value={datos.nombre}
-            onChange={handleChange}
-            aria-invalid={errores.nombre ? 'true' : 'false'}
-          />
-          {errores.nombre && (
-            <p className="hint hint--error">
-              <span className="material-symbols-outlined text-[18px]" aria-hidden="true">error</span>
-              <span>{errores.nombre}</span>
-            </p>
-          )}
-        </div>
+        <FormField label="Nombre" name="nombre" value={datos.nombre} onChange={handleChange} error={errores.nombre} />
 
         <div>
           <label className="label" htmlFor="descripcion">Descripción (opcional)</label>
@@ -408,47 +392,8 @@ function PublicarPlato({ onSesionVencida, onAviso }) {
         </div>
 
         <div className="grid gap-6 sm:grid-cols-3">
-          <div>
-            <label className="label" htmlFor="precio">Precio</label>
-            <input
-              id="precio"
-              name="precio"
-              type="number"
-              min="0"
-              step="0.01"
-              className="field"
-              placeholder="$ 0"
-              value={datos.precio}
-              onChange={handleChange}
-              aria-invalid={errores.precio ? 'true' : 'false'}
-            />
-            {errores.precio && (
-              <p className="hint hint--error">
-                <span className="material-symbols-outlined text-[18px]" aria-hidden="true">error</span>
-                <span>{errores.precio}</span>
-              </p>
-            )}
-          </div>
-          <div>
-            <label className="label" htmlFor="stockDisponible">Stock</label>
-            <input
-              id="stockDisponible"
-              name="stockDisponible"
-              type="number"
-              min="0"
-              step="1"
-              className="field"
-              value={datos.stockDisponible}
-              onChange={handleChange}
-              aria-invalid={errores.stockDisponible ? 'true' : 'false'}
-            />
-            {errores.stockDisponible && (
-              <p className="hint hint--error">
-                <span className="material-symbols-outlined text-[18px]" aria-hidden="true">error</span>
-                <span>{errores.stockDisponible}</span>
-              </p>
-            )}
-          </div>
+          <FormField label="Precio" name="precio" type="number" min="0" step="0.01" placeholder="$ 0" value={datos.precio} onChange={handleChange} error={errores.precio} />
+          <FormField label="Stock" name="stockDisponible" type="number" min="0" step="1" value={datos.stockDisponible} onChange={handleChange} error={errores.stockDisponible} />
           <div>
             <label className="label" htmlFor="estado">Estado</label>
             <select id="estado" name="estado" className="field" value={datos.estado} onChange={handleChange}>
