@@ -10,7 +10,9 @@ Este repositorio corresponde al **Front-End de Appetitos**, construido con **Rea
 - **Vite:** entorno de desarrollo y generación de la aplicación para producción.
 - **React Router:** navegación entre vistas y rutas protegidas por rol.
 - **Tailwind CSS 3:** única librería de estilos, con los tokens de diseño de Appetitos.
-- **fetch nativo:** conexión con la API (sin Axios ni otras librerías).
+- **Redux Toolkit y React-Redux:** estado global de la sesión y de los GET públicos (3.ª entrega).
+- **Axios:** llamadas a la API de lo que vive en Redux, solo dentro de los slices.
+- **fetch nativo:** el resto de las llamadas (escrituras y GET privados), como en la 2.ª entrega.
 - **ESLint:** revisión estática del código.
 
 Solo se usa JavaScript (archivos `.jsx`).
@@ -53,7 +55,22 @@ Un pedido no sale de «Pendiente de confirmación» hasta que el cliente lo paga
 
 - `views/`: una vista por pantalla; tiene el estado y las llamadas a la API.
 - `components/`: piezas de interfaz reutilizables (Header, PlatoCard, Dialog, etc.), ordenadas en subcarpetas por dominio: `comunes/`, `layout/`, `platos/`, `cesta/`, `pedidos/`, `chef/`, `auth/` y `admin/`. Solo reciben props y avisan hacia arriba: no hacen llamadas a la API.
-- `App.jsx` y `main.jsx`: punto de entrada. `main.jsx` envuelve la app con `BrowserRouter`; `App.jsx` define las rutas y guarda el estado compartido (sesión, cesta y avisos).
+- `components/Redux/`: el store y un slice por dominio (ver la sección siguiente). Es la única parte que usa Axios.
+- `App.jsx` y `main.jsx`: punto de entrada. `main.jsx` envuelve la app con `Provider` (Redux) y `BrowserRouter`; `App.jsx` define las rutas y guarda el estado que todavía no migró a Redux (cesta y avisos).
+
+## Redux (3.ª entrega)
+
+Redux Toolkit maneja la sesión y los GET públicos. Cada slice está en `src/components/Redux/` con su thunk (`createAsyncThunk` + Axios) y guarda `items`, `loading` y `error`. Las vistas despachan el thunk en un `useEffect` y leen el resultado con `useSelector`.
+
+| Slice (`state.<clave>`) | Qué guarda | Thunks |
+| ----------------------- | ---------- | ------ |
+| `auth` | Sesión: `user`, `token`, `isAuthenticated`, `loading`, `error` | `login`, `register` y el reducer `logout` |
+| `platos` | Lista de platos (con filtros), plato del detalle y plato recomendado de la portada | `fetchPlatos`, `fetchPlatoById`, `fetchPlatoRecomendado` |
+| `categorias` | Categorías de los platos | `fetchCategorias` |
+| `ingredientes` | Ingredientes para armar un plato | `fetchIngredientes` |
+| `resenas` | Reseñas de un plato o todas (perfil del chef) | `fetchResenasByPlato`, `fetchResenas` |
+
+Todavía **no** están en Redux y siguen con `fetch` en la vista o en `App.jsx`: la cesta, los avisos (Toast), todas las escrituras (POST, PUT, PATCH y DELETE) y los GET privados (pedidos, pagos, domicilios, perfil, administración y perfiles de chef). El panel de categorías de `Admin` tampoco, porque las modifica con escrituras.
 
 ## Ejecución local
 
@@ -87,7 +104,7 @@ npm run lint     # Revisa el código con ESLint
 
 ## Sesión
 
-El login guarda el token JWT en el estado de `App.jsx` y en `localStorage` (clave `jwtToken`), para no perder la sesión al recargar la página. Al abrir la app se restaura con `GET /users/me`. Si el backend responde 401, la sesión se cierra y se pide ingresar de nuevo. Para la 3.ª entrega, este manejo se migra a Redux.
+El login guarda el token JWT solo en el store de Redux (`state.auth`), sin `localStorage`, `sessionStorage` ni cookies. **Al recargar la página (F5) la sesión se pierde** y hay que volver a ingresar. Las rutas privadas mandan el token en `Authorization: Bearer`, y las públicas no lo mandan. Si el backend responde 401 en una ruta privada, se despacha `logout` y se pide ingresar de nuevo. «Salir» también vacía la cesta.
 
 ## Limitaciones conocidas del backend
 
