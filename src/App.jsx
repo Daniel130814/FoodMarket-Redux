@@ -41,9 +41,6 @@ const leerRespuesta = (response) =>
     return cuerpo.data
   })
 
-// Clave del JWT en localStorage.
-const CLAVE_TOKEN = 'jwtToken'
-
 // Arma un carrito nuevo recalculando subtotales y total (al quitar o vaciar el backend no devuelve la cesta).
 const calcularCarrito = (id, items) => {
   const itemsCalculados = items.map((item) => ({
@@ -64,9 +61,6 @@ function App() {
   // Sesión: null sin usuario, o { token, userId, role, nombre }. Vive acá porque la usan el Header y las rutas protegidas.
   const [sesion, setSesion] = useState(null)
 
-  // true mientras se verifica el token guardado: las rutas protegidas esperan en vez de mandar a /ingreso.
-  const [cargandoSesion, setCargandoSesion] = useState(() => localStorage.getItem(CLAVE_TOKEN) !== null)
-
   // Aviso del Toast: null o { texto, tipo } con tipo 'exito' o 'error'.
   const [aviso, setAviso] = useState(null)
 
@@ -76,7 +70,6 @@ function App() {
   // Cierra la sesión por un 401 (token vencido); RutaProtegida manda a /ingreso al ver la sesión en null.
   const sesionVencida = () => {
     setSesion(null)
-    localStorage.removeItem(CLAVE_TOKEN)
     setCarrito((actual) => calcularCarrito(actual.id, []))
     // Con setAviso directo (no avisar): el efecto de la cesta la llama y no debe tener funciones nuevas en sus dependencias.
     setAviso({ texto: 'Tu sesión venció, ingresá de nuevo', tipo: 'error' })
@@ -161,27 +154,7 @@ function App() {
     avisar('Pedido confirmado')
   }
 
-  // Al abrir o recargar: restaura la sesión con el token guardado (GET /users/me, el rol no viene en el JWT).
-  useEffect(() => {
-    const token = localStorage.getItem(CLAVE_TOKEN)
-
-    if (token === null) {
-      return
-    }
-
-    fetch(`${API_URL}/users/me`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(leerRespuesta)
-      .then((usuario) => setSesion({ token, userId: usuario.id, role: usuario.role, nombre: usuario.nombre }))
-      .catch((fallo) => {
-        // Con un error del servidor el token ya no sirve; si no hubo respuesta (backend apagado) lo conservamos.
-        if (fallo.status !== undefined) {
-          localStorage.removeItem(CLAVE_TOKEN)
-        }
-      })
-      .finally(() => setCargandoSesion(false))
-  }, [])
-
-  // Carga la cesta del servidor cuando se ingresa o se restaura la sesión. Solo el CLIENTE tiene cesta.
+  // Carga la cesta del servidor cuando se inicia la sesión. Solo el CLIENTE tiene cesta.
   useEffect(() => {
     if (sesion === null || sesion.role !== 'CLIENTE') {
       return
@@ -200,10 +173,9 @@ function App() {
       })
   }, [sesion])
 
-  // Inicia sesión (la llaman Ingreso y Registro). El token va al estado y a localStorage para sobrevivir al F5.
+  // Inicia sesión (la llaman Ingreso y Registro). Sin F5: la sesión se pierde al recargar y se vuelve a ingresar.
   const iniciarSesion = (nuevaSesion) => {
     setSesion(nuevaSesion)
-    localStorage.setItem(CLAVE_TOKEN, nuevaSesion.token)
     avisar(`Ingresaste como ${nuevaSesion.nombre}`)
   }
 
@@ -212,10 +184,9 @@ function App() {
     setSesion((actual) => ({ ...actual, nombre: usuario.nombre }))
   }
 
-  // Cierra la sesión y limpia la sesión, el token y la cesta, para que la próxima persona no herede sus platos.
+  // Cierra la sesión y limpia la sesión y la cesta, para que la próxima persona no herede sus platos.
   const cerrarSesion = () => {
     setSesion(null)
-    localStorage.removeItem(CLAVE_TOKEN)
     setCarrito(calcularCarrito(carrito.id, []))
     avisar('Cerraste sesión')
   }
@@ -243,7 +214,7 @@ function App() {
 
   // Envuelve una vista con RutaProtegida para los roles permitidos.
   const protegida = (roles, vista) => (
-    <RutaProtegida sesion={sesion} cargandoSesion={cargandoSesion} rolesPermitidos={roles}>
+    <RutaProtegida sesion={sesion} rolesPermitidos={roles}>
       {vista}
     </RutaProtegida>
   )
