@@ -5,6 +5,7 @@ import OrderCard from '../components/pedidos/OrderCard'
 import Tabs from '../components/comunes/Tabs'
 import Dialog from '../components/comunes/Dialog'
 import ResenaDialog from '../components/pedidos/ResenaDialog'
+import PagoDialog from '../components/pedidos/PagoDialog'
 import LoadingState from '../components/comunes/LoadingState'
 import ErrorState from '../components/comunes/ErrorState'
 
@@ -32,13 +33,6 @@ const pedirPrivado = (ruta, token) =>
   fetch(`${API_URL}${ruta}`, { headers: { Authorization: `Bearer ${token}` } })
     .then(leerRespuesta)
     .then((data) => data ?? [])
-
-const MEDIOS_PAGO = [
-  { valor: 'TARJETA_CREDITO', etiqueta: 'Tarjeta de crédito' },
-  { valor: 'TARJETA_DEBITO', etiqueta: 'Tarjeta de débito' },
-  { valor: 'TRANSFERENCIA', etiqueta: 'Transferencia' },
-  { valor: 'EFECTIVO', etiqueta: 'Efectivo' },
-]
 
 // Estado del pedido -> texto para el cliente. CANCELADO no está: se muestra aparte, con su propio badge.
 const ETIQUETAS_ESTADO = {
@@ -277,23 +271,13 @@ function MisPedidos({ onSesionVencida, onAviso }) {
         onCancel={() => setPlatoAResenar(null)}
       />
 
-      <Dialog
-        open={pedidoAPagarId !== null}
-        title={`Pagar el pedido n.º ${pedidoAPagarId}`}
-        message="Elegí cómo vas a pagar. Registramos el pago y queda pendiente hasta que lo aprueben."
-        confirmLabel="Registrar pago"
-        confirmVariant="primary"
-        cancelLabel="Volver"
+      <PagoDialog
+        pedidoId={pedidoAPagarId}
+        medioPago={medioPago}
+        onMedioPagoChange={(event) => setMedioPago(event.target.value)}
         onConfirm={confirmarPago}
         onCancel={() => setPedidoAPagarId(null)}
-      >
-        <label className="label mt-5" htmlFor="medioPago">Medio de pago</label>
-        <select id="medioPago" className="field" value={medioPago} onChange={(event) => setMedioPago(event.target.value)}>
-          {MEDIOS_PAGO.map((medio) => (
-            <option key={medio.valor} value={medio.valor}>{medio.etiqueta}</option>
-          ))}
-        </select>
-      </Dialog>
+      />
     </>
   )
 }
