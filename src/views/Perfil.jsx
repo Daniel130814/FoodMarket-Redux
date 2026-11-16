@@ -6,6 +6,7 @@ import ContenidoAsync from '../components/comunes/ContenidoAsync'
 import FormField from '../components/comunes/FormField'
 import Alert from '../components/comunes/Alert'
 import ChefProfileForm from '../components/chef/ChefProfileForm'
+import PasswordForm from '../components/auth/PasswordForm'
 
 const API_URL = import.meta.env.VITE_API_URL
 
@@ -396,19 +397,14 @@ function Perfil({ onSesionVencida, onAviso }) {
               />
             )}
 
-            <form className="mt-14 max-w-xl space-y-6" onSubmit={handlePasswordSubmit} noValidate>
-              <h2 className="font-display text-headline-md text-primary">Cambiar la contraseña</h2>
-
-              {errorPassword !== null && <Alert title="No pudimos cambiar la contraseña" messages={[errorPassword]} />}
-
-              <FormField label="Contraseña actual" name="actual" type="password" value={formPassword.actual} onChange={handlePasswordChange} error={erroresPassword.actual} autoComplete="current-password" />
-              <FormField label="Contraseña nueva" name="nueva" type="password" value={formPassword.nueva} onChange={handlePasswordChange} error={erroresPassword.nueva} autoComplete="new-password" />
-              <FormField label="Repetí la contraseña nueva" name="repetir" type="password" value={formPassword.repetir} onChange={handlePasswordChange} error={erroresPassword.repetir} autoComplete="new-password" />
-
-              <button type="submit" className="btn btn-primary" disabled={guardandoPassword}>
-                {guardandoPassword ? 'Cambiando...' : 'Cambiar contraseña'}
-              </button>
-            </form>
+            <PasswordForm
+              datos={formPassword}
+              errores={erroresPassword}
+              error={errorPassword}
+              guardando={guardandoPassword}
+              onChange={handlePasswordChange}
+              onSubmit={handlePasswordSubmit}
+            />
           </>
         )}
       </ContenidoAsync>
