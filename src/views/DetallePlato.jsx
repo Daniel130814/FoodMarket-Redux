@@ -1,5 +1,6 @@
 // Detalle de un plato (/plato/:id): GET /platos/{id}, /resenas/plato/{id} y /chef-profiles, y agregar a la cesta.
 import { useEffect, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import { useParams, useNavigate } from 'react-router-dom'
 import Button from '../components/comunes/Button'
 import EmptyState from '../components/comunes/EmptyState'
@@ -10,6 +11,7 @@ import QuantityStepper from '../components/cesta/QuantityStepper'
 import IngredientTrace from '../components/platos/IngredientTrace'
 import ReviewList from '../components/platos/ReviewList'
 import ChefCard from '../components/platos/ChefCard'
+import { fetchPlatoById } from '../components/Redux/platosSlice'
 
 // URL base del backend (viene de .env).
 const API_URL = import.meta.env.VITE_API_URL
@@ -35,10 +37,10 @@ function DetallePlato({ onAdd }) {
   // Cantidad elegida: vive acá y no en QuantityStepper porque el botón de agregar y el precio también la necesitan.
   const [cantidad, setCantidad] = useState(1)
 
-  // noDisponible: el backend respondió 404 (el plato no existe o está pausado).
-  const [plato, setPlato] = useState(null)
+  // El plato viene del store (platosSlice); las reseñas y el perfil del chef todavía se piden acá.
+  const dispatch = useDispatch()
+  const { platoActual: plato, loading: cargando, error } = useSelector((state) => state.platos)
   const [resenas, setResenas] = useState([])
-  const [noDisponible, setNoDisponible] = useState(false)
 
   // Perfil del chef del plato, o null si no tiene (no todos los chefs lo cargaron).
   const [perfilChef, setPerfilChef] = useState(null)
@@ -46,11 +48,17 @@ function DetallePlato({ onAdd }) {
   // Un id que no es entero positivo (/plato/abc) no se le pregunta al backend: respondería 500.
   const idValido = Number.isInteger(Number(id)) && Number(id) > 0
 
-  // cargando arranca en true solo si hay que pedir el plato (id válido).
-  const [cargando, setCargando] = useState(idValido)
-  const [error, setError] = useState(null)
+  // Con 404 (el plato no existe o está pausado) el mensaje de Axios termina en "404": no es una falla, es "no disponible".
+  const noDisponible = error !== null && error.includes('404')
 
-  // Pide el plato y sus reseñas al abrir y si cambia el id. Ruta pública: sin token.
+  // Pide el plato al abrir y si cambia el id. Ruta pública: sin token.
+  useEffect(() => {
+    if (idValido) {
+      dispatch(fetchPlatoById(id))
+    }
+  }, [dispatch, id, idValido])
+
+  // Reseñas del plato (GET /resenas/plato/{id}). Si fallan, el detalle se ve igual, sin reseñas.
   useEffect(() => {
     if (!idValido) {
       return
@@ -59,58 +67,32 @@ function DetallePlato({ onAdd }) {
     // Se cancela si salimos de la vista antes de que responda.
     const controlador = new AbortController()
 
-    fetch(`${API_URL}/platos/${id}`, { signal: controlador.signal })
+    fetch(`${API_URL}/resenas/plato/${id}`, { signal: controlador.signal })
       .then(leerRespuesta)
-      // Las reseñas y el perfil se piden después: si el plato no existe, ya se cortó con el 404.
-      .then((platoApi) =>
-        Promise.all([
-          fetch(`${API_URL}/resenas/plato/${id}`, { signal: controlador.signal }).then(leerRespuesta),
-          // El perfil es un extra: si falla, el detalle se ve igual. No hay endpoint por chefId, así que se busca en la lista.
-          fetch(`${API_URL}/chef-profiles`, { signal: controlador.signal })
-            .then(leerRespuesta)
-            .catch(() => null),
-        ]).then(([resenasApi, perfilesApi]) => ({
-          platoApi,
-          resenasApi,
-          perfilApi: (perfilesApi ?? []).find((perfil) => perfil.userId === platoApi.chefId) ?? null,
-        }))
-      )
-      .then(({ platoApi, resenasApi, perfilApi }) => {
-        setPlato(platoApi)
-        setResenas(resenasApi ?? [])
-        setPerfilChef(perfilApi)
-        setNoDisponible(false)
-        setError(null)
-        setCargando(false)
-      })
-      .catch((fallo) => {
-        if (fallo.name === 'AbortError') {
-          return
-        }
-        // 404: el plato no existe o no está publicado; no es una falla, es "no disponible".
-        if (fallo.status === 404) {
-          setNoDisponible(true)
-        } else {
-          setError(
-            fallo.status === undefined
-              ? 'No pudimos conectar con el servidor. Revisá que el backend esté funcionando e intentá de nuevo.'
-              : fallo.message
-          )
-        }
-        setCargando(false)
-      })
+      .then((data) => setResenas(data ?? [])) // lista vacía llega como null
+      .catch(() => setResenas([]))
 
     return () => controlador.abort()
   }, [id, idValido])
 
-  if (cargando) {
-    return <LoadingState message="Cargando el plato..." />
-  }
-  if (error !== null) {
-    return <ErrorState message={error} />
-  }
+  // Perfil del chef: es un extra, si falla el detalle se ve igual. No hay endpoint por chefId, así que se busca en la lista.
+  const chefId = plato?.chefId
+  useEffect(() => {
+    if (chefId === undefined) {
+      return
+    }
 
-  if (!idValido || noDisponible || plato === null) {
+    const controlador = new AbortController()
+
+    fetch(`${API_URL}/chef-profiles`, { signal: controlador.signal })
+      .then(leerRespuesta)
+      .then((perfiles) => setPerfilChef((perfiles ?? []).find((perfil) => perfil.userId === chefId) ?? null))
+      .catch(() => setPerfilChef(null))
+
+    return () => controlador.abort()
+  }, [chefId])
+
+  if (!idValido || noDisponible) {
     return (
       <EmptyState
         title="Este plato no está disponible"
@@ -119,6 +101,14 @@ function DetallePlato({ onAdd }) {
         onAction={() => navigate('/catalogo')}
       />
     )
+  }
+
+  // El store puede traer el plato de otra visita: hasta que llegue el de este id se muestra "cargando".
+  if (cargando || (error === null && (plato === null || plato.id !== Number(id)))) {
+    return <LoadingState message="Cargando el plato..." />
+  }
+  if (error !== null) {
+    return <ErrorState message={error} />
   }
 
   const agotado = plato.estado === 'AGOTADO'
