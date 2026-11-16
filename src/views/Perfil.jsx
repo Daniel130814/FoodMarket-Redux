@@ -3,9 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useSelector } from 'react-redux'
 import ContenidoAsync from '../components/comunes/ContenidoAsync'
-import FormField from '../components/comunes/FormField'
-import Alert from '../components/comunes/Alert'
 import ChefProfileForm from '../components/chef/ChefProfileForm'
+import DatosCuentaForm from '../components/auth/DatosCuentaForm'
 import PasswordForm from '../components/auth/PasswordForm'
 
 const API_URL = import.meta.env.VITE_API_URL
@@ -26,12 +25,6 @@ const leerRespuesta = (response) =>
     }
     return cuerpo.data
   })
-
-const NOMBRES_ROL = {
-  CLIENTE: 'Cliente',
-  CHEF: 'Chef',
-  ADMIN: 'Administrador',
-}
 
 const aFormulario = (usuario) => ({
   nombre: usuario.nombre,
@@ -358,29 +351,15 @@ function Perfil({ onSesionVencida, onAviso }) {
       >
         {usuario !== null && (
           <>
-            <form className="mt-10 max-w-xl space-y-6" onSubmit={handleSubmit} noValidate>
-              {/* No editables: la API ignora el usuario y el rol en PUT /users/me */}
-              <dl className="grid gap-4 rounded-xl bg-surface-container-lowest p-5 shadow-ambient sm:grid-cols-2">
-                <div>
-                  <dt className="text-label-md text-on-surface-variant">Usuario</dt>
-                  <dd className="text-body-md text-primary">@{usuario.username}</dd>
-                </div>
-                <div>
-                  <dt className="text-label-md text-on-surface-variant">Rol</dt>
-                  <dd className="text-body-md text-primary">{NOMBRES_ROL[usuario.role]}</dd>
-                </div>
-              </dl>
-
-              {errorGuardar !== null && <Alert title="No pudimos guardar tus datos" messages={[errorGuardar]} />}
-
-              <FormField label="Nombre" name="nombre" value={form.nombre} onChange={handleChange} error={errores.nombre} />
-              <FormField label="Apellido" name="apellido" value={form.apellido} onChange={handleChange} error={errores.apellido} />
-              <FormField label="Correo electrónico" name="email" type="email" value={form.email} onChange={handleChange} error={errores.email} />
-
-              <button type="submit" className="btn btn-primary" disabled={guardando}>
-                {guardando ? 'Guardando...' : 'Guardar cambios'}
-              </button>
-            </form>
+            <DatosCuentaForm
+              usuario={usuario}
+              datos={form}
+              errores={errores}
+              error={errorGuardar}
+              guardando={guardando}
+              onChange={handleChange}
+              onSubmit={handleSubmit}
+            />
 
             {usuario.role === 'CHEF' && (
               <ChefProfileForm
