@@ -128,7 +128,7 @@
 - **Escrituras en Redux (cuando se pidan):** el patrón de la profesora, solo con `fulfilled`: crear → `[...state.items, action.payload]`; editar → `findIndex` + `state.items[index] = action.payload`; borrar → `filter` por id. Sin volver a pedir la lista. En la demo el formulario hace `dispatch(createPosts({ title, body }))` **sin `await` ni `.unwrap()`** y se limpia al instante.
 - **Cuidado con `loading`:** `PostList` devuelve "Cargando..." apenas `loading` es `true`. Una escritura no debe prender el mismo `loading` de la lista, o la lista y el formulario desaparecen mientras se guarda.
 - **Qué NO usar (la profesora no lo mostró):** `createSelector`, `createEntityAdapter`, RTK Query, `createListenerMiddleware`, hooks tipados, `.unwrap()`, `rejectWithValue` fuera de `login` y `register`, archivos de selectores, subcarpetas dentro de `components/Redux/`, lógica dentro de `reducers: {}` (salvo `logout`), `redux` o `redux-thunk` sueltos y `useMemo`. Si hace falta alguno, **preguntá primero**. Los thunks escritos a mano (`(dispatch) => ...`) aparecen en un ejemplo de sus PDFs, pero sus demos usan `createAsyncThunk`: usamos `createAsyncThunk`.
-- **Alcance de la primera migración:** la sesión y los GET públicos (`GET /platos`, `GET /platos/{id}` en el campo `platoActual`, `GET /categories`, `GET /ingredientes`, `GET /resenas/plato/{id}`). `GET /carrito`, `/domicilios` y `/orders`, y "mis platos" del chef **no se migran todavía**: se modifican con escrituras locales y quedarían la misma lista en Redux y en `useState` (decisión #14).
+- **Alcance de la primera migración:** la sesión y los GET públicos (`GET /platos`, `GET /platos/{id}` en el campo `platoActual`, `GET /categories`, `GET /ingredientes`, `GET /resenas/plato/{id}`). `GET /carrito`, `/domicilios` y `/orders`, y "mis platos" del chef **no se migran todavía**: se modifican con escrituras locales y quedarían la misma lista en Redux y en `useState` (decisión #14). **Excepciones de los pasos 17 y 18:** `deleteResena` (escritura, en `resenasSlice`, con `filter` por id en `fulfilled`, decisión #11) y `fetchSubpedidosChef` (GET privado, token y userId por argumento, en `subpedidosSlice`, solo para el dashboard: `PedidosRecibidos` sigue con su `fetch` y su `useState`, y el dashboard vuelve a pedir los datos cada vez que se abre).
 - **`authSlice` ≠ `usuariosSlice`:** `authSlice` es la sesión (quién está logueado, token, rol). `usuariosSlice` será la entidad usuarios del panel Admin (se crea cuando se migre). Si el usuario edita su propio perfil, `authSlice` escucha el thunk de `usuariosSlice` en su `extraReducers`.
 - **Verificación obligatoria:** abrir Redux DevTools y comprobar `@@INIT`, `<dominio>/<accion>/pending` y `/fulfilled` (o `/rejected` con el backend caído) antes de dar un paso por terminado.
 
@@ -479,8 +479,9 @@ const crearDomicilio = (datos) => {
 | MisPedidos                          | `/pedidos`                   | CLIENTE              |
 | MisPublicaciones                    | `/mis-publicaciones`         | CHEF                 |
 | PublicarPlato                       | `/publicar`, `/publicar/:id` | CHEF                 |
-| Admin (usuarios, pagos y categorías) | `/admin`                    | ADMIN                |
+| Admin (usuarios, pagos, categorías y reseñas) | `/admin`           | ADMIN                |
 | PedidosRecibidos                    | `/pedidos-recibidos`         | CHEF                 |
+| Dashboard ("Mis ventas")             | `/dashboard`                 | CHEF                 |
 | Perfil (el CHEF también edita su presentación) | `/perfil`         | CLIENTE, CHEF, ADMIN |
 | PerfilChef (presentación, platos y reseñas del chef) | `/chef/:userId` | público              |
 | NoEncontrado (404)                  | cualquier otra ruta (`*`)    | público              |
@@ -488,14 +489,14 @@ const crearDomicilio = (datos) => {
 Componentes compartidos, en subcarpetas de `src/components/` (imports como `../components/comunes/Button`):
 
 - `comunes/`: `Button`, `Dialog`, `Toast`, `FormField`, `EmptyState`, `LoadingState`, `ErrorState`, `ContenidoAsync` (resuelve cargando / error / vacío / datos con `children`), `Tabs`, `Pagination`, `Alert`.
-- `layout/`: `Header`, `Footer`, `Logo`, `LogoCloche`, `Hero3D`, `FondoMesa`, `FondoFoto`.
-- `platos/`: `PlatoCard`, `Gallery`, `IngredientTrace`, `IngredientRows`, `ReviewList`, `CategoryChips`, `CategoryPicker`, `FilterChips`, `SearchBar`, `ChefCard`.
+- `layout/`: `Header` (con el globito de pedidos por atender del chef), `MenuMovil`, `Insignia`, `Footer`, `Logo`, `LogoCloche`, `Hero3D`, `FondoMesa`, `FondoFoto`.
+- `platos/`: `PlatoCard`, `Gallery`, `IngredientTrace`, `IngredientRows`, `ReviewList` (con `onDelete` opcional: solo el ADMIN lo recibe), `PlatoRating` (promedio de estrellas; lee las reseñas del store), `CategoryChips`, `CategoryPicker`, `FilterChips`, `SearchBar`, `ChefCard`.
 - `cesta/`: `CartItem`, `QuantityStepper` (controlado: el valor viene por props), `OrderSummary`, `DomicilioPicker`, `DomicilioForm`.
-- `pedidos/`: `OrderCard`, `OrderTrack`, `SubPedidoCard`.
-- `chef/`: `PublicationRow`, `ImageUrlList`, `ImageFilePicker`, `ChefProfileForm` (formulario de la presentación del chef en `Perfil`; el estado y los `fetch` viven en `Perfil.jsx`).
-- `auth/`: `RoleOption`, `RutaProtegida` (lee `state.auth` con `useSelector`).
-- `Redux/` (3.ª entrega, carpeta plana): `store.js`, `authSlice.js`, `platosSlice.js`, `categoriasSlice.js`, `ingredientesSlice.js`, `resenasSlice.js`. Se van creando en el paso 15; más adelante `usuariosSlice.js`.
-- `admin/`: `CategoriasPanel` (pestaña Categorías de `Admin`: lista, formulario de alta y botones Editar y Eliminar; el estado, los `fetch` y los diálogos viven en `Admin.jsx`).
+- `pedidos/`: `OrderCard`, `OrderTrack`, `SubPedidoCard`, `PedidosLista`, `ResenaDialog` (con el filtro de lenguaje ofensivo), `PagoDialog`, `MedioPagoSelect` (lo usan el checkout y `PagoDialog`).
+- `chef/`: `PublicationRow` (con la etiqueta "Stock bajo"), `StatCard` y `BarChart` (del dashboard), `ImageUrlList`, `ImageFilePicker`, `ChefProfileForm` (formulario de la presentación del chef en `Perfil`; el estado y los `fetch` viven en `Perfil.jsx`).
+- `auth/`: `RoleOption`, `RutaProtegida` (lee `state.auth` con `useSelector`), `PasswordForm` y `DatosCuentaForm` (de `Perfil`), `RegistroAside`.
+- `Redux/` (3.ª entrega, carpeta plana): `store.js`, `authSlice.js`, `platosSlice.js`, `categoriasSlice.js`, `ingredientesSlice.js`, `resenasSlice.js` (con `deleteResena`), `subpedidosSlice.js` (dashboard del chef). Se crearon en los pasos 15 a 18; más adelante `usuariosSlice.js`.
+- `admin/`: `CategoriasPanel`, `PagosPanel`, `UsuariosPanel`, `ResenasPanel` (una por pestaña de `Admin`), `UsuarioDetalleDialog` y `CategoriaEditDialog`. Solo dibujan: el estado, los `fetch` y los handlers viven en `Admin.jsx`.
 
 ## 9. Hoja de ruta
 
@@ -574,7 +575,22 @@ Prioridad: lo que pide el TPO (registro y login, catálogo, detalle, carrito y c
   - **Pendientes conocidos de la migración (a confirmar):** (1) se perdió el aviso "Ingresaste como X" (salía de `iniciarSesion`; un efecto que llame a `setAviso` lo rechaza `react-hooks/set-state-in-effect`); (2) el nombre del `Header` no se actualiza al editar el perfil (opción B: lo resolverá `usuariosSlice` en 15.7, `TODO(redux)` en `Perfil.jsx`); (3) el 404 del detalle de un plato se detecta con `error.includes('404')` porque el thunk solo guarda `action.error.message`; (4) sin `AbortController`, dos respuestas cruzadas de `fetchPlatos` podrían pisarse al escribir rápido en el catálogo.
   - Sin migrar a propósito: cesta, avisos/toast, escrituras y GET privados (ver el alcance en la sección 1).
 
+- [x] **16 Más componentes, una sola función cada uno (A1, 16/11)**: extracciones sin cambiar el comportamiento, un commit por componente. `MisPedidos` (`ResenaDialog`, `PagoDialog`, `PedidosLista`), `Perfil` (`PasswordForm`, `DatosCuentaForm`), `Admin` (`PagosPanel`, `UsuariosPanel`, `UsuarioDetalleDialog`, `CategoriaEditDialog`), `Header` (`MenuMovil` y enlaces por rol en una constante), `Registro` (`FormField`, `Alert` y `RegistroAside`) y `PublicarPlato` (`FormField`). `FormField` suma `placeholder`, `hint`, `min` y `step`. **Límite:** `Admin` (648), `PublicarPlato` (443) y `Perfil` (394) no llegan a ~250 líneas porque su estado y sus handlers se quedan en la vista (sin hooks propios ni helpers compartidos).
+- [x] **17 Moderación de reseñas**:
+  - [x] A2 `ResenaDialog` bloquea comentarios con lenguaje ofensivo antes de llamar a la API (normaliza tildes, símbolos, letras repetidas y separadores; compara por palabra entera; la lista `PALABRAS_PROHIBIDAS` está dentro del componente y se revisa a mano). El backend debería validar lo mismo.
+  - [x] A3 El ADMIN elimina reseñas: `deleteResena` en `resenasSlice`, pestaña "Reseñas" en `/admin` (`ResenasPanel`) y botón "Eliminar" en `ReviewList` del detalle del plato. Errores 401, 403 y 404 por el código al final del mensaje de Axios.
+- [x] **18 Features nuevas (16/11)**:
+  - [x] B1 Dashboard de ventas del chef (`/dashboard`, "Mis ventas"): `subpedidosSlice`, tarjetas, pedidos por estado y platos más vendidos con barras de `div`. Sin ventas por día (el subpedido no trae fecha).
+  - [x] B4 Globito de pedidos por atender (PENDIENTE o CONFIRMADO) en el `Header` del chef, al ingresar y en cada navegación; Toast si aumentó. Sin temporizador (pendiente de confirmar con la profesora).
+  - [x] B3 El checkout elige el medio de pago y registra el pago con el pedido (`POST /pagos/createPago` después del checkout; si falla, el pedido queda creado y se paga desde Mis pedidos). Sin datos de tarjeta.
+  - [x] C1 "Volver a pedir" en pedidos entregados o cancelados (agrega los platos a la cesta en fila; los que no se pueden se nombran en el Toast).
+  - [x] C2 `PlatoRating` en las tarjetas y sección "Mejor puntuados" en `Inicio` (promedios calculados en el front con `GET /resenas`).
+  - [x] C3 Etiqueta "Stock bajo" (5 unidades o menos) en las publicaciones del chef.
+  - **Sin hacer:** B2 favoritos (necesita el backend), C4 métricas del admin, C5 platos relacionados, C6 esqueletos de carga. **Sin probar contra el backend:** todo lo que pide un ADMIN (pestañas de `Admin`, borrar reseñas, aprobar pagos), el diálogo de reseña con el filtro de insultos (pide un pedido entregado), el globito y el Toast del chef con pedidos reales, el dashboard con ventas y el caso mixto de "Volver a pedir". Regla de las últimas dos semanas: nada nuevo después del viernes 27/11.
+
 **`TODO(backend)` que quedan:** `PATCH` de stock y de estado del plato; `chefNombre` en los platos y `imagenUrl` y `chefNombre` en los ítems del carrito; nombre, apellido y nacionalidad en `ChefProfileResponse` y en `POST/PUT /chef-profiles` (hoy la tarjeta muestra solo especialidad, biografía, descripción, foto y reputación); filtro `chefId` en `GET /platos` y `GET /resenas/chef/{id}`; `pedidoId`, fecha y cliente en los subpedidos; `clienteNombre` en las reseñas. (Ya resueltos: el 24/10 "mis platos", `GET /platos/{id}` para el dueño, cambio de rol, cambio de contraseña, subida de imágenes y el `message` del `DELETE`; el 26/10 `PUT /chef-profiles/{id}/foto`, sin probar desde el front.)
+
+**`TODO(backend)` agregados en los pasos 16 a 18:** favoritos del cliente (`GET`, `POST` y `DELETE /favoritos/{platoId}`, bloquea B2); validación de insultos en `POST` y `PUT /resenas` (400 "El comentario contiene lenguaje no permitido"); `clienteNombre` y `platoNombre` en `ResenaResponse`; `pedidoId`, `fechaCreacion` y `clienteNombre` en `SubPedidoChefResponse` (permitiría ventas por día en el dashboard); contador de pedidos pendientes del chef (`GET /subpedidos/chef/{id}/pendientes`). Están redactados en el archivo de tareas del backend.
 
 ## 10. Antes de dar un paso por terminado
 
