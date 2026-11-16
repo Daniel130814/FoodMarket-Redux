@@ -1,6 +1,6 @@
-// Raíz de la app: define las rutas y tiene el estado compartido (sesión, cesta y aviso). Se monta en main.jsx.
+// Raíz de la app: define las rutas y tiene el estado compartido (cesta y aviso); la sesión vive en Redux. Se monta en main.jsx.
 import { useEffect, useState } from 'react'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import Header from './components/layout/Header'
 import Footer from './components/layout/Footer'
@@ -61,8 +61,8 @@ function App() {
   // Cesta (CarritoResponse). Ojo: el id de cada ítem no es el del plato; la API lo usa para editarlo o quitarlo.
   const [carrito, setCarrito] = useState({ id: 1, items: [], totalEstimado: 0 })
 
-  // Sesión: null sin usuario, o { token, userId, role, nombre }. Vive acá porque la usan el Header y las rutas protegidas.
-  const [sesion, setSesion] = useState(null)
+  // Sesión del store: user es null sin sesión, o { userId, role, nombre, ... }.
+  const { token, user } = useSelector((state) => state.auth)
 
   // Aviso del Toast: null o { texto, tipo } con tipo 'exito' o 'error'.
   const [aviso, setAviso] = useState(null)
@@ -70,9 +70,8 @@ function App() {
   // Muestra un aviso; los de error pasan 'error' para que el Toast cambie el ícono.
   const avisar = (texto, tipo = 'exito') => setAviso({ texto, tipo })
 
-  // Cierra la sesión por un 401 (token vencido); RutaProtegida manda a /ingreso al ver la sesión en null.
+  // Cierra la sesión por un 401 (token vencido); RutaProtegida manda a /ingreso al ver la sesión vacía.
   const sesionVencida = () => {
-    setSesion(null)
     dispatch(logout())
     setCarrito((actual) => calcularCarrito(actual.id, []))
     // Con setAviso directo (no avisar): el efecto de la cesta la llama y no debe tener funciones nuevas en sus dependencias.
@@ -94,7 +93,7 @@ function App() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${sesion.token}`, // ruta privada
+        Authorization: `Bearer ${token}`, // ruta privada
       },
       body: JSON.stringify({ platoId: plato.id, cantidad }),
     })
@@ -116,7 +115,7 @@ function App() {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${sesion.token}`, // ruta privada
+        Authorization: `Bearer ${token}`, // ruta privada
       },
       body: JSON.stringify({ cantidad }),
     })
@@ -129,7 +128,7 @@ function App() {
   const quitar = (itemId) => {
     fetch(`${API_URL}/carrito/items/${itemId}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${sesion.token}` }, // ruta privada
+      headers: { Authorization: `Bearer ${token}` }, // ruta privada
     })
       .then(leerRespuesta)
       .then(() =>
@@ -142,7 +141,7 @@ function App() {
   const vaciar = () => {
     fetch(`${API_URL}/carrito`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${sesion.token}` }, // ruta privada
+      headers: { Authorization: `Bearer ${token}` }, // ruta privada
     })
       .then(leerRespuesta)
       .then(() => {
@@ -160,18 +159,17 @@ function App() {
 
   // Carga la cesta del servidor cuando se inicia la sesión. Solo el CLIENTE tiene cesta.
   useEffect(() => {
-    if (sesion === null || sesion.role !== 'CLIENTE') {
+    if (user === null || user.role !== 'CLIENTE') {
       return
     }
 
-    fetch(`${API_URL}/carrito`, { headers: { Authorization: `Bearer ${sesion.token}` } })
+    fetch(`${API_URL}/carrito`, { headers: { Authorization: `Bearer ${token}` } })
       .then(leerRespuesta)
       .then((carritoServidor) => setCarrito(carritoServidor))
       // Sin manejarFallo: es una función nueva en cada render y entraría en las dependencias del efecto.
       .catch((fallo) => {
         if (fallo.status === 401) {
           // Lo mismo que sesionVencida, en línea (esa función no puede ir en las dependencias).
-          setSesion(null)
           dispatch(logout())
           setCarrito((actual) => calcularCarrito(actual.id, []))
           setAviso({ texto: 'Tu sesión venció, ingresá de nuevo', tipo: 'error' })
@@ -179,22 +177,10 @@ function App() {
         }
         avisar(mensajeDe(fallo), 'error')
       })
-  }, [sesion, dispatch])
+  }, [user, token, dispatch])
 
-  // Inicia sesión (la llaman Ingreso y Registro). Sin F5: la sesión se pierde al recargar y se vuelve a ingresar.
-  const iniciarSesion = (nuevaSesion) => {
-    setSesion(nuevaSesion)
-    avisar(`Ingresaste como ${nuevaSesion.nombre}`)
-  }
-
-  // Perfil guardó cambios: actualizamos el nombre de la sesión, que es lo que muestra el Header.
-  const perfilActualizado = (usuario) => {
-    setSesion((actual) => ({ ...actual, nombre: usuario.nombre }))
-  }
-
-  // Cierra la sesión y limpia la sesión y la cesta, para que la próxima persona no herede sus platos.
+  // Cierra la sesión y limpia la cesta, para que la próxima persona no herede sus platos.
   const cerrarSesion = () => {
-    setSesion(null)
     dispatch(logout())
     setCarrito(calcularCarrito(carrito.id, []))
     avisar('Cerraste sesión')
@@ -210,11 +196,11 @@ function App() {
 
   // onAdd de las vistas: sin sesión manda a /ingreso, CHEF y ADMIN no pueden comprar.
   const agregarSegunSesion = (plato, cantidad) => {
-    if (sesion === null) {
+    if (user === null) {
       navigate('/ingreso', { state: { from: location.pathname } })
       return
     }
-    if (sesion.role !== 'CLIENTE') {
+    if (user.role !== 'CLIENTE') {
       avisar('Solo los clientes pueden comprar', 'error')
       return
     }
@@ -235,8 +221,8 @@ function App() {
     if (esPantallaAuth) {
       return (
         <Routes>
-          <Route path="/ingreso" element={<Ingreso onLogin={iniciarSesion} />} />
-          <Route path="/registro" element={<Registro onLogin={iniciarSesion} />} />
+          <Route path="/ingreso" element={<Ingreso />} />
+          <Route path="/registro" element={<Registro />} />
         </Routes>
       )
     }
@@ -333,7 +319,6 @@ function App() {
                 ['CLIENTE', 'CHEF', 'ADMIN'],
                 <Perfil
                   onSesionVencida={sesionVencida}
-                  onPerfilActualizado={perfilActualizado}
                   onAviso={avisar}
                 />
               )}
