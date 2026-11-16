@@ -272,6 +272,7 @@ function App() {
                   cartCount={cantidadTotal}
                   onSesionVencida={sesionVencida}
                   onPedidoCreado={pedidoCreado}
+                  onAviso={avisar}
                 />
               )}
             />

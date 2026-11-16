@@ -1,10 +1,11 @@
-// Checkout (/checkout, CLIENTE): se elige o crea el domicilio de entrega y se confirma el pedido.
+// Checkout (/checkout, CLIENTE): se elige o crea el domicilio de entrega, se elige el medio de pago y se confirma el pedido.
 import { useEffect, useState } from 'react'
 import { useSelector } from 'react-redux'
 import { Link, useNavigate } from 'react-router-dom'
 import DomicilioPicker from '../components/cesta/DomicilioPicker'
 import DomicilioForm from '../components/cesta/DomicilioForm'
 import OrderSummary from '../components/cesta/OrderSummary'
+import MedioPagoSelect from '../components/pedidos/MedioPagoSelect'
 import EmptyState from '../components/comunes/EmptyState'
 import Alert from '../components/comunes/Alert'
 import LoadingState from '../components/comunes/LoadingState'
@@ -43,8 +44,9 @@ const FORM_VACIO = {
 // Campos obligatorios para la API; los demás son opcionales.
 const CAMPOS_OBLIGATORIOS = ['calle', 'numero', 'ciudad', 'provincia', 'codigoPostal']
 
-// Props: carrito, cartCount (unidades), onSesionVencida (401), onPedidoCreado (App vacía su copia de la cesta). El token sale del store.
-function Checkout({ carrito, cartCount, onSesionVencida, onPedidoCreado }) {
+// Props: carrito, cartCount (unidades), onSesionVencida (401), onPedidoCreado (App vacía su copia de la cesta), onAviso (Toast).
+// El token sale del store.
+function Checkout({ carrito, cartCount, onSesionVencida, onPedidoCreado, onAviso }) {
   // Token del store (ruta privada).
   const token = useSelector((state) => state.auth.token)
   const navigate = useNavigate()
@@ -58,6 +60,9 @@ function Checkout({ carrito, cartCount, onSesionVencida, onPedidoCreado }) {
   const [errorDomicilio, setErrorDomicilio] = useState(null)
 
   const [domicilioElegidoId, setDomicilioElegidoId] = useState(null)
+
+  // Medio de pago elegido (solo el medio: no se guardan datos de tarjeta).
+  const [medioPago, setMedioPago] = useState('TARJETA_CREDITO')
 
   // Formulario de domicilio nuevo: abierto, datos y errores por campo.
   const [mostrarForm, setMostrarForm] = useState(false)
@@ -172,7 +177,8 @@ function Checkout({ carrito, cartCount, onSesionVencida, onPedidoCreado }) {
   }
 
   // Confirma el pedido (POST /carrito/checkout): el backend valida y descuenta el stock, arma un subpedido por chef
-  // y vacía la cesta del servidor.
+  // y vacía la cesta del servidor. Con el pedido creado registra el pago (POST /pagos/createPago): queda PENDIENTE
+  // hasta que lo apruebe un ADMIN. Si el pago falla, el pedido ya existe y se puede pagar desde Mis pedidos.
   const confirmar = () => {
     setConfirmando(true)
     setConflictos([])
@@ -188,7 +194,27 @@ function Checkout({ carrito, cartCount, onSesionVencida, onPedidoCreado }) {
       .then(leerRespuesta)
       .then((pedido) => {
         onPedidoCreado(pedido)
-        navigate('/pedidos')
+        return fetch(`${API_URL}/pagos/createPago`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`, // ruta privada
+          },
+          body: JSON.stringify({ medioPago, pedidoId: pedido.id }),
+        })
+          .then(leerRespuesta)
+          .then(() => {
+            onAviso(`Registramos tu pago del pedido n.º ${pedido.id}. Falta que lo aprueben.`)
+            navigate('/pedidos')
+          })
+          .catch((fallo) => {
+            if (fallo.status === 401) {
+              onSesionVencida()
+              return
+            }
+            onAviso(`Tu pedido n.º ${pedido.id} se creó, pero no pudimos registrar el pago: ${mensajeDe(fallo)} Podés pagarlo desde Mis pedidos.`, 'error')
+            navigate('/pedidos')
+          })
       })
       .catch((fallo) => {
         if (fallo.status === 401) {
@@ -244,13 +270,21 @@ function Checkout({ carrito, cartCount, onSesionVencida, onPedidoCreado }) {
           {domicilioElegidoId === null && (
             <p className="mt-4 text-body-sm text-on-surface-variant">Elegí un domicilio para poder confirmar el pedido.</p>
           )}
+
+          <section className="mt-10 max-w-md" aria-labelledby="h-pago">
+            <h2 id="h-pago" className="font-display text-headline-sm text-primary">Pago</h2>
+            <p className="mb-3 mt-1 text-body-sm text-on-surface-variant">
+              Elegí cómo vas a pagar. Registramos el pago con el pedido y queda pendiente hasta que lo aprueben.
+            </p>
+            <MedioPagoSelect value={medioPago} onChange={(event) => setMedioPago(event.target.value)} />
+          </section>
         </div>
         <div className="lg:col-span-4">
           <OrderSummary
             units={cartCount}
             subtotal={totalEstimado}
             onConfirm={confirmar}
-            buttonLabel="Confirmar pedido"
+            buttonLabel="Confirmar y pagar"
             disabled={domicilioElegidoId === null || confirmando}
           />
         </div>
