@@ -245,8 +245,6 @@ function App() {
     const formularioPlato = protegida(
       ['CHEF'],
       <PublicarPlato
-        token={sesion?.token}
-        userId={sesion?.userId}
         onSesionVencida={sesionVencida}
         onAviso={avisar}
       />
@@ -285,7 +283,6 @@ function App() {
                 <Checkout
                   carrito={carrito}
                   cartCount={cantidadTotal}
-                  token={sesion?.token}
                   onSesionVencida={sesionVencida}
                   onPedidoCreado={pedidoCreado}
                 />
@@ -295,7 +292,7 @@ function App() {
               path="/pedidos"
               element={protegida(
                 ['CLIENTE'],
-                <MisPedidos token={sesion?.token} onSesionVencida={sesionVencida} onAviso={avisar} />
+                <MisPedidos onSesionVencida={sesionVencida} onAviso={avisar} />
               )}
             />
 
@@ -304,7 +301,7 @@ function App() {
               path="/mis-publicaciones"
               element={protegida(
                 ['CHEF'],
-                <MisPublicaciones token={sesion?.token} onSesionVencida={sesionVencida} onAviso={avisar} />
+                <MisPublicaciones onSesionVencida={sesionVencida} onAviso={avisar} />
               )}
             />
             <Route
@@ -312,8 +309,6 @@ function App() {
               element={protegida(
                 ['CHEF'],
                 <PedidosRecibidos
-                  token={sesion?.token}
-                  userId={sesion?.userId}
                   onSesionVencida={sesionVencida}
                   onAviso={avisar}
                 />
@@ -327,7 +322,7 @@ function App() {
               path="/admin"
               element={protegida(
                 ['ADMIN'],
-                <Admin token={sesion?.token} onSesionVencida={sesionVencida} onAviso={avisar} />
+                <Admin onSesionVencida={sesionVencida} onAviso={avisar} />
               )}
             />
 
@@ -337,7 +332,6 @@ function App() {
               element={protegida(
                 ['CLIENTE', 'CHEF', 'ADMIN'],
                 <Perfil
-                  token={sesion?.token}
                   onSesionVencida={sesionVencida}
                   onPerfilActualizado={perfilActualizado}
                   onAviso={avisar}

@@ -1,5 +1,6 @@
 // Mis publicaciones (/mis-publicaciones, solo CHEF): sus platos en cualquier estado, con stock, pausa, descuento y eliminar.
 import { useEffect, useState } from 'react'
+import { useSelector } from 'react-redux'
 import { Link } from 'react-router-dom'
 import FilterChips from '../components/platos/FilterChips'
 import PublicationRow from '../components/chef/PublicationRow'
@@ -25,8 +26,10 @@ const leerRespuesta = (response) =>
     return cuerpo.data
   })
 
-// Props: token (JWT), onSesionVencida (cierra la sesión ante un 401), onAviso (muestra un Toast).
-function MisPublicaciones({ token, onSesionVencida, onAviso }) {
+// Props: onSesionVencida (cierra la sesión ante un 401), onAviso (muestra un Toast). El token sale del store.
+function MisPublicaciones({ onSesionVencida, onAviso }) {
+  // Token del store (ruta privada).
+  const token = useSelector((state) => state.auth.token)
   // Platos del chef y categorías (el PUT las pide por id y el plato las trae por nombre).
   const [platos, setPlatos] = useState([])
   const [categorias, setCategorias] = useState([])

@@ -2,6 +2,7 @@
 // Pestaña Usuarios: listar, crear y abrir el detalle para editar datos y cambiar el rol.
 // Pestaña Categorías: listar, crear, editar y eliminar las categorías de los platos.
 import { useEffect, useState } from 'react'
+import { useSelector } from 'react-redux'
 import Tabs from '../components/comunes/Tabs'
 import CategoriasPanel from '../components/admin/CategoriasPanel'
 import Dialog from '../components/comunes/Dialog'
@@ -105,8 +106,10 @@ const validarEdicion = (datos) => ({
 
 const formatear = (monto) => `$${monto.toLocaleString('es-AR')}`
 
-// Props: token (JWT), onSesionVencida (cierra la sesión ante un 401), onAviso (muestra un Toast).
-function Admin({ token, onSesionVencida, onAviso }) {
+// Props: onSesionVencida (cierra la sesión ante un 401), onAviso (muestra un Toast). El token sale del store.
+function Admin({ onSesionVencida, onAviso }) {
+  // Token del store (ruta privada).
+  const token = useSelector((state) => state.auth.token)
   const [pagos, setPagos] = useState([])
 
   const [cargando, setCargando] = useState(true)

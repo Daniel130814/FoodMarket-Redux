@@ -1,5 +1,6 @@
 // Checkout (/checkout, CLIENTE): se elige o crea el domicilio de entrega y se confirma el pedido.
 import { useEffect, useState } from 'react'
+import { useSelector } from 'react-redux'
 import { Link, useNavigate } from 'react-router-dom'
 import DomicilioPicker from '../components/cesta/DomicilioPicker'
 import DomicilioForm from '../components/cesta/DomicilioForm'
@@ -42,8 +43,10 @@ const FORM_VACIO = {
 // Campos obligatorios para la API; los demás son opcionales.
 const CAMPOS_OBLIGATORIOS = ['calle', 'numero', 'ciudad', 'provincia', 'codigoPostal']
 
-// Props: carrito, cartCount (unidades), token (JWT), onSesionVencida (401), onPedidoCreado (App vacía su copia de la cesta).
-function Checkout({ carrito, cartCount, token, onSesionVencida, onPedidoCreado }) {
+// Props: carrito, cartCount (unidades), onSesionVencida (401), onPedidoCreado (App vacía su copia de la cesta). El token sale del store.
+function Checkout({ carrito, cartCount, onSesionVencida, onPedidoCreado }) {
+  // Token del store (ruta privada).
+  const token = useSelector((state) => state.auth.token)
   const navigate = useNavigate()
   const { items, totalEstimado } = carrito
 

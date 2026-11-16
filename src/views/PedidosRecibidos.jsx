@@ -1,5 +1,6 @@
 // Pedidos recibidos (/pedidos-recibidos, solo CHEF): sus subpedidos (uno por chef en cada pedido), que avanza paso a paso.
 import { useEffect, useState } from 'react'
+import { useSelector } from 'react-redux'
 import SubPedidoCard from '../components/pedidos/SubPedidoCard'
 import Tabs from '../components/comunes/Tabs'
 import Dialog from '../components/comunes/Dialog'
@@ -47,8 +48,11 @@ const ACCIONES = {
   ENVIADO: { siguiente: 'ENTREGADO', boton: 'Marcar entregado' },
 }
 
-// Props: token (JWT), userId (del chef; en la API el chefId es el id de su usuario), onSesionVencida (401), onAviso (Toast).
-function PedidosRecibidos({ token, userId, onSesionVencida, onAviso }) {
+// Props: onSesionVencida (401), onAviso (Toast). El token y el userId (en la API el chefId es el id del usuario) salen del store.
+function PedidosRecibidos({ onSesionVencida, onAviso }) {
+  // Token y userId del store (ruta privada).
+  const token = useSelector((state) => state.auth.token)
+  const userId = useSelector((state) => state.auth.user?.userId)
   // TODO(backend): el subpedido no trae el número de pedido, la fecha ni el cliente; se muestra solo su id.
   const [subPedidos, setSubPedidos] = useState([])
 
