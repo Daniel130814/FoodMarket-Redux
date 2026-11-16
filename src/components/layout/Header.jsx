@@ -17,6 +17,7 @@ const ENLACES_POR_ROL = {
   CHEF: [
     { texto: 'Mis publicaciones', ruta: '/mis-publicaciones' },
     { texto: 'Pedidos recibidos', ruta: '/pedidos-recibidos' },
+    { texto: 'Mis ventas', ruta: '/dashboard' },
   ],
   ADMIN: [{ texto: 'Administración', ruta: '/admin' }],
 }

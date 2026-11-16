@@ -18,6 +18,7 @@ import PublicarPlato from './views/PublicarPlato'
 import Ingreso from './views/Ingreso'
 import Registro from './views/Registro'
 import Admin from './views/Admin'
+import Dashboard from './views/Dashboard'
 import PedidosRecibidos from './views/PedidosRecibidos'
 import Perfil from './views/Perfil'
 import NoEncontrado from './views/NoEncontrado'
@@ -299,6 +300,10 @@ function App() {
                   onAviso={avisar}
                 />
               )}
+            />
+            <Route
+              path="/dashboard"
+              element={protegida(['CHEF'], <Dashboard onSesionVencida={sesionVencida} />)}
             />
             <Route path="/publicar" element={formularioPlato} />
             <Route path="/publicar/:id" element={formularioPlato} />
