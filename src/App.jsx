@@ -1,5 +1,6 @@
 // Raíz de la app: define las rutas y tiene el estado compartido (sesión, cesta y aviso). Se monta en main.jsx.
 import { useEffect, useState } from 'react'
+import { useDispatch } from 'react-redux'
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import Header from './components/layout/Header'
 import Footer from './components/layout/Footer'
@@ -20,6 +21,7 @@ import Admin from './views/Admin'
 import PedidosRecibidos from './views/PedidosRecibidos'
 import Perfil from './views/Perfil'
 import NoEncontrado from './views/NoEncontrado'
+import { logout } from './components/Redux/authSlice'
 
 // URL base del backend (viene de .env).
 const API_URL = import.meta.env.VITE_API_URL
@@ -54,6 +56,7 @@ const calcularCarrito = (id, items) => {
 function App() {
   const location = useLocation()
   const navigate = useNavigate()
+  const dispatch = useDispatch()
 
   // Cesta (CarritoResponse). Ojo: el id de cada ítem no es el del plato; la API lo usa para editarlo o quitarlo.
   const [carrito, setCarrito] = useState({ id: 1, items: [], totalEstimado: 0 })
@@ -70,6 +73,7 @@ function App() {
   // Cierra la sesión por un 401 (token vencido); RutaProtegida manda a /ingreso al ver la sesión en null.
   const sesionVencida = () => {
     setSesion(null)
+    dispatch(logout())
     setCarrito((actual) => calcularCarrito(actual.id, []))
     // Con setAviso directo (no avisar): el efecto de la cesta la llama y no debe tener funciones nuevas en sus dependencias.
     setAviso({ texto: 'Tu sesión venció, ingresá de nuevo', tipo: 'error' })
@@ -166,12 +170,16 @@ function App() {
       // Sin manejarFallo: es una función nueva en cada render y entraría en las dependencias del efecto.
       .catch((fallo) => {
         if (fallo.status === 401) {
-          sesionVencida()
+          // Lo mismo que sesionVencida, en línea (esa función no puede ir en las dependencias).
+          setSesion(null)
+          dispatch(logout())
+          setCarrito((actual) => calcularCarrito(actual.id, []))
+          setAviso({ texto: 'Tu sesión venció, ingresá de nuevo', tipo: 'error' })
           return
         }
         avisar(mensajeDe(fallo), 'error')
       })
-  }, [sesion])
+  }, [sesion, dispatch])
 
   // Inicia sesión (la llaman Ingreso y Registro). Sin F5: la sesión se pierde al recargar y se vuelve a ingresar.
   const iniciarSesion = (nuevaSesion) => {
@@ -187,6 +195,7 @@ function App() {
   // Cierra la sesión y limpia la sesión y la cesta, para que la próxima persona no herede sus platos.
   const cerrarSesion = () => {
     setSesion(null)
+    dispatch(logout())
     setCarrito(calcularCarrito(carrito.id, []))
     avisar('Cerraste sesión')
   }
@@ -214,7 +223,7 @@ function App() {
 
   // Envuelve una vista con RutaProtegida para los roles permitidos.
   const protegida = (roles, vista) => (
-    <RutaProtegida sesion={sesion} rolesPermitidos={roles}>
+    <RutaProtegida rolesPermitidos={roles}>
       {vista}
     </RutaProtegida>
   )
@@ -246,7 +255,7 @@ function App() {
     return (
       <>
         <a className="skip-link" href="#contenido">Ir al contenido</a>
-        <Header cartCount={cantidadTotal} sesion={sesion} onLogout={salir} />
+        <Header cartCount={cantidadTotal} onLogout={salir} />
         <main id="contenido" className="mx-auto max-w-shell px-5 py-10 lg:px-12">
           <Routes>
             {/* Públicas */}
