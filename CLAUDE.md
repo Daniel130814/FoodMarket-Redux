@@ -116,7 +116,7 @@
 > Escribí el código como el de la profesora: simple y directo, sin abstracciones extra. Las llamadas a la API van **dentro del slice**; nada de `services/` ni helpers compartidos.
 
 - **Dependencias:** `@reduxjs/toolkit`, `react-redux` y `axios`. No instalar `redux` ni `redux-thunk` (ya vienen dentro de RTK). Avisar antes de instalar.
-- **Carpeta:** `src/components/Redux/` con `store.js` y un archivo por dominio: `authSlice.js`, `platosSlice.js`, `categoriasSlice.js`, `ingredientesSlice.js`, `resenasSlice.js` (más adelante `usuariosSlice.js`). **Un slice por dominio; el thunk va en el mismo archivo.**
+- **Carpeta:** `src/components/Redux/` con `store.js` y un archivo por dominio: `authSlice.js`, `platosSlice.js`, `categoriasSlice.js`, `ingredientesSlice.js`, `resenasSlice.js`, `subpedidosSlice.js` (más adelante `usuariosSlice.js`). **Un slice por dominio; el thunk va en el mismo archivo.**
 - **Forma del slice:** `name` del dominio, `initialState: { items: [], loading: false, error: null }`, `reducers: {}` (vacío si no hay acciones síncronas) y `extraReducers` con `builder.addCase(thunk.pending | fulfilled | rejected)`. `pending` → `loading = true` y `error = null`; `fulfilled` → `loading = false` y `items = action.payload`; `rejected` → `loading = false` y `error = action.error.message`. Mutar el state **solo dentro de un reducer** (Immer lo permite ahí y en ningún otro lado).
 - **Thunks al estilo de la profesora:** `createAsyncThunk("dominio/accion", async (arg) => { const { data: cuerpo } = await axios.get(...); return cuerpo.data ?? []; })`. **Sin `try/catch`.** Siempre se llama con paréntesis: `dispatch(fetchPlatos())`.
 - **Excepción (decisión #7):** `login` y `register` usan `try/catch` y `rejectWithValue(error.response?.data?.message)`, y su `rejected` guarda `state.error = action.payload`, para mostrar el mensaje del backend (credenciales inválidas, usuario duplicado = 400).
@@ -182,12 +182,12 @@ Mientras no responda, se usa el comportamiento por defecto. Cada decisión tiene
 | Publicar / Mis publicaciones | `POST /platos/createPlato`, `PUT /platos/{id}`, `DELETE /platos/{id}`, `PATCH` y `DELETE /platos/{id}/descuento`, `GET /categories`, `GET /ingredientes` |
 | Admin / categorías           | `GET /categories` (pública, sin token), `POST /categories/createCategory`, `PUT /categories/{id}`, `DELETE /categories/{id}` (las tres, ADMIN; el campo es `description`) |
 
-**Dependencias del backend (en arreglo por el equipo).** Si `ENDPOINTS.md` ya las trae, usalas. Si no, dejá un placeholder con un comentario `TODO(backend)` y listalo al terminar el paso:
+**Dependencias del backend (resueltas en el paso 19).** El contrato vigente es `ENDPOINTS-CAMBIOS.md`, que manda sobre `ENDPOINTS.md`. Si falta algo, dejá un placeholder con un comentario `TODO(backend)` y listalo al terminar el paso:
 
-- CORS para `http://localhost:5173` (sin eso el navegador bloquea todo).
-- Datos semilla de categorías e ingredientes; un ADMIN inicial.
-- ~~Listar "mis platos" del chef en todos los estados y `GET /platos/{id}` visible para el dueño~~ (**ya está, 24/10**). Sigue pendiente el `PATCH` de stock y de estado.
-- `chefNombre` en los platos y en el perfil del chef; `imagenUrl`, `stockDisponible` y `chefNombre` en los ítems del carrito; `clienteNombre` en las reseñas.
+- ~~CORS para `http://localhost:5173`~~ (**ya está**).
+- ~~Datos semilla de categorías e ingredientes; un ADMIN inicial~~ (**ya está**, por variables de entorno del backend).
+- ~~Listar "mis platos" del chef en todos los estados y `GET /platos/{id}` visible para el dueño~~ (**ya está, 24/10**). ~~El `PATCH` de stock y de estado~~ (**ya está, paso 19.7**).
+- ~~`chefNombre` en los platos y en el perfil del chef; `imagenUrl`, `stockDisponible` y `chefNombre` en los ítems del carrito; `clienteNombre` en las reseñas~~ (**ya están, paso 19**).
 - ~~Que `DELETE /platos/{id}` informe si el plato quedó borrado o pausado~~ (**ya está**: lo dice el `message`).
 
 ## 6. Plantillas de código aprobadas
@@ -495,7 +495,7 @@ Componentes compartidos, en subcarpetas de `src/components/` (imports como `../c
 - `pedidos/`: `OrderCard`, `OrderTrack`, `SubPedidoCard`, `PedidosLista`, `ResenaDialog` (con el filtro de lenguaje ofensivo), `PagoDialog`, `MedioPagoSelect` (lo usan el checkout y `PagoDialog`).
 - `chef/`: `PublicationRow` (con la etiqueta "Stock bajo"), `StatCard` y `BarChart` (del dashboard), `ImageUrlList`, `ImageFilePicker`, `ChefProfileForm` (formulario de la presentación del chef en `Perfil`; el estado y los `fetch` viven en `Perfil.jsx`).
 - `auth/`: `RoleOption`, `RutaProtegida` (lee `state.auth` con `useSelector`), `PasswordForm` y `DatosCuentaForm` (de `Perfil`), `RegistroAside`.
-- `Redux/` (3.ª entrega, carpeta plana): `store.js`, `authSlice.js`, `platosSlice.js`, `categoriasSlice.js`, `ingredientesSlice.js`, `resenasSlice.js` (con `deleteResena`), `subpedidosSlice.js` (dashboard del chef). Se crearon en los pasos 15 a 18; más adelante `usuariosSlice.js`.
+- `Redux/` (3.ª entrega, carpeta plana): `store.js`, `authSlice.js`, `platosSlice.js`, `categoriasSlice.js`, `ingredientesSlice.js`, `resenasSlice.js` (con `deleteResena` y `fetchResenasByChef`), `subpedidosSlice.js` (dashboard del chef). Se crearon en los pasos 15 a 18; más adelante `usuariosSlice.js`.
 - `admin/`: `CategoriasPanel`, `PagosPanel`, `UsuariosPanel`, `ResenasPanel` (una por pestaña de `Admin`), `UsuarioDetalleDialog` y `CategoriaEditDialog`. Solo dibujan: el estado, los `fetch` y los handlers viven en `Admin.jsx`.
 
 ## 9. Hoja de ruta
@@ -511,7 +511,7 @@ Prioridad: lo que pide el TPO (registro y login, catálogo, detalle, carrito y c
   - [x] 12.3 Cesta del servidor (POST/PUT/DELETE con estado local, sin re-GET; incluye vaciar con `DELETE /carrito`).
   - [x] 12.4 Checkout con domicilio → pedido (`GET /domicilios`, `POST createDomicilio`, `POST /carrito/checkout`).
   - [x] 12.5 Mis pedidos reales + cancelar (`GET /orders`, `PATCH /orders/{id}/cancelar`).
-- [x] **13** Vistas del chef conectadas: Mis publicaciones, Publicar/editar (fotos como URLs, categorías e ingredientes desde los catálogos), eliminar, stock y descuento. Hecho con las limitaciones del backend de entonces: sin "mis platos" (la lista salía de `GET /platos` filtrado por `chefId`; **resuelto en el 3.2 del plan de mejoras**, hoy usa `GET /platos/mis-platos`) y sin `PATCH` de stock ni de estado (se usa `PUT` con el plato completo).
+- [x] **13** Vistas del chef conectadas: Mis publicaciones, Publicar/editar (fotos como URLs, categorías e ingredientes desde los catálogos), eliminar, stock y descuento. Hecho con las limitaciones del backend de entonces: sin "mis platos" (la lista salía de `GET /platos` filtrado por `chefId`; **resuelto en el 3.2 del plan de mejoras**, hoy usa `GET /platos/mis-platos`) y sin `PATCH` de stock ni de estado (se usaba `PUT` con el plato completo; **resuelto en el paso 19.7**).
 - [x] **14** Flujo completo de compra y extras (hecho). Para que un pedido salga de PENDIENTE hacen falta el pago del cliente, la aprobación de un ADMIN y que el chef avance el subpedido:
   - [x] 14a Pagos del cliente (`POST /pagos/createPago`, `GET /pagos`) en Mis pedidos.
   - [x] 14b Administración en `/admin`: pagos (aprobar, rechazar, reembolsar) y usuarios (listar y crear con rol; la API todavía no cambia roles). Incluye el componente `FormField`.
@@ -577,10 +577,10 @@ Prioridad: lo que pide el TPO (registro y login, catálogo, detalle, carrito y c
 
 - [x] **16 Más componentes, una sola función cada uno (A1, 16/11)**: extracciones sin cambiar el comportamiento, un commit por componente. `MisPedidos` (`ResenaDialog`, `PagoDialog`, `PedidosLista`), `Perfil` (`PasswordForm`, `DatosCuentaForm`), `Admin` (`PagosPanel`, `UsuariosPanel`, `UsuarioDetalleDialog`, `CategoriaEditDialog`), `Header` (`MenuMovil` y enlaces por rol en una constante), `Registro` (`FormField`, `Alert` y `RegistroAside`) y `PublicarPlato` (`FormField`). `FormField` suma `placeholder`, `hint`, `min` y `step`. **Límite:** `Admin` (648), `PublicarPlato` (443) y `Perfil` (394) no llegan a ~250 líneas porque su estado y sus handlers se quedan en la vista (sin hooks propios ni helpers compartidos).
 - [x] **17 Moderación de reseñas**:
-  - [x] A2 `ResenaDialog` bloquea comentarios con lenguaje ofensivo antes de llamar a la API (normaliza tildes, símbolos, letras repetidas y separadores; compara por palabra entera; la lista `PALABRAS_PROHIBIDAS` está dentro del componente y se revisa a mano). El backend debería validar lo mismo.
+  - [x] A2 `ResenaDialog` bloquea comentarios con lenguaje ofensivo antes de llamar a la API (normaliza tildes, símbolos, letras repetidas y separadores; compara por palabra entera; la lista `PALABRAS_PROHIBIDAS` está dentro del componente y se revisa a mano). El backend ya valida lo mismo (paso 19.6); decisión del 16/11: **el filtro principal es el del backend** (`palabras-prohibidas-es.txt`) y el del front queda como aviso rápido sin pedido. Sus listas no coinciden (el backend bloquea más palabras).
   - [x] A3 El ADMIN elimina reseñas: `deleteResena` en `resenasSlice`, pestaña "Reseñas" en `/admin` (`ResenasPanel`) y botón "Eliminar" en `ReviewList` del detalle del plato. Errores 401, 403 y 404 por el código al final del mensaje de Axios.
 - [x] **18 Features nuevas (16/11)**:
-  - [x] B1 Dashboard de ventas del chef (`/dashboard`, "Mis ventas"): `subpedidosSlice`, tarjetas, pedidos por estado y platos más vendidos con barras de `div`. Sin ventas por día (el subpedido no trae fecha).
+  - [x] B1 Dashboard de ventas del chef (`/dashboard`, "Mis ventas"): `subpedidosSlice`, tarjetas, pedidos por estado y platos más vendidos con barras de `div`. Sin ventas por día todavía: desde el paso 19.3 el subpedido trae `fechaCreacion`, así que se puede agregar cuando se pida.
   - [x] B4 Globito de pedidos por atender (PENDIENTE o CONFIRMADO) en el `Header` del chef, al ingresar y en cada navegación; Toast si aumentó. Sin temporizador (pendiente de confirmar con la profesora).
   - [x] B3 El checkout elige el medio de pago y registra el pago con el pedido (`POST /pagos/createPago` después del checkout; si falla, el pedido queda creado y se paga desde Mis pedidos). Sin datos de tarjeta.
   - [x] C1 "Volver a pedir" en pedidos entregados o cancelados (agrega los platos a la cesta en fila; los que no se pueden se nombran en el Toast).
@@ -588,9 +588,18 @@ Prioridad: lo que pide el TPO (registro y login, catálogo, detalle, carrito y c
   - [x] C3 Etiqueta "Stock bajo" (5 unidades o menos) en las publicaciones del chef.
   - **Sin hacer:** B2 favoritos (necesita el backend), C4 métricas del admin, C5 platos relacionados, C6 esqueletos de carga. **Probado con el backend real (16/11, con un ADMIN):** las 4 pestañas de `/admin`, aprobar un pago, el detalle de usuario y la validación de `CategoriaEditDialog`, el diálogo de reseña (el insulto `p3l0tud0` se bloquea sin llamar a la API; uno válido da 201) y el borrado de reseñas desde `/admin` y desde el detalle del plato (`DELETE` 200, sin `GET` extra, el promedio se recalcula). **Sin probar:** el globito y el Toast del chef con pedidos reales, el dashboard con ventas, el caso mixto de "Volver a pedir" y el 403 de borrar una reseña ajena como CLIENTE. Regla de las últimas dos semanas: nada nuevo después del viernes 27/11.
 
-**`TODO(backend)` que quedan:** `PATCH` de stock y de estado del plato; `chefNombre` en los platos y `imagenUrl` y `chefNombre` en los ítems del carrito; nombre, apellido y nacionalidad en `ChefProfileResponse` y en `POST/PUT /chef-profiles` (hoy la tarjeta muestra solo especialidad, biografía, descripción, foto y reputación); filtro `chefId` en `GET /platos` y `GET /resenas/chef/{id}`; `pedidoId`, fecha y cliente en los subpedidos; `clienteNombre` en las reseñas. (Ya resueltos: el 24/10 "mis platos", `GET /platos/{id}` para el dueño, cambio de rol, cambio de contraseña, subida de imágenes y el `message` del `DELETE`; el 26/10 `PUT /chef-profiles/{id}/foto`, sin probar desde el front.)
+- [x] **19 Adaptar el front a los campos y endpoints nuevos del backend (16/11)**: un commit por sub-paso, probado con el backend real.
+  - [x] 19.1 Cesta: `CartItem` usa `imagenUrl` (ícono si es `null`), muestra `chefNombre` y topa la cantidad en `stockDisponible`; `Carrito` ya no pide los platos para las fotos.
+  - [x] 19.2 `chefNombre` en `PlatoCard`, `DetallePlato` y la tarjeta del plato recomendado (`Hero3D`).
+  - [x] 19.3 Pedidos recibidos: "Pedido n.º {pedidoId}", fecha con hora y cliente; se ordena por la fecha del pedido; el diálogo y el Toast hablan del pedido. El `PATCH` de estado sigue actualizando la lista local sin `GET`.
+  - [x] 19.4 Reseñas con `clienteNombre` y `platoNombre` (`ReviewList` con la prop `showPlato`, `ResenasPanel`); `PerfilChef` pide `GET /resenas/chef/{id}` (`fetchResenasByChef`) y `GET /platos?chefId=`; `Admin` ya no cruza reseñas con platos. El 404 de un chef inexistente se muestra como "no disponible".
+  - [x] 19.5 `ChefCard` con nombre, apellido, especialidad y nacionalidad; `ChefProfileForm` suma `nacionalidad`; largos máximos (100 y 2000) validados junto al campo.
+  - [x] 19.6 `ResenaDialog` y `MisPedidos` muestran el 400 del backend ("El comentario contiene lenguaje no permitido") junto al comentario; el diálogo queda abierto hasta saber el resultado.
+  - [x] 19.7 `MisPublicaciones` usa `PATCH /platos/{id}/stock` y `/estado` (y ya no pide las categorías): la fila se actualiza con el plato devuelto, sin `PUT` ni `GET`.
+  - [x] 19.8 Esta documentación; se sacó la nota "no hay ventas por día" del Dashboard.
+  - **Sin hacer (pasos 20 y 21, a pedir):** favoritos (`GET`, `POST` y `DELETE /favoritos/{platoId}`, ya existen en el backend), métricas del admin y simplificar el Dashboard.
 
-**`TODO(backend)` agregados en los pasos 16 a 18:** favoritos del cliente (`GET`, `POST` y `DELETE /favoritos/{platoId}`, bloquea B2); validación de insultos en `POST` y `PUT /resenas` (400 "El comentario contiene lenguaje no permitido"); `clienteNombre` y `platoNombre` en `ResenaResponse`; `pedidoId`, `fechaCreacion` y `clienteNombre` en `SubPedidoChefResponse` (permitiría ventas por día en el dashboard); contador de pedidos pendientes del chef (`GET /subpedidos/chef/{id}/pendientes`). Están redactados en el archivo de tareas del backend.
+**`TODO(backend)` que siguen abiertos:** el origen y la distancia de cada ingrediente (`IngredientTrace`, la API no los tiene); revisar `palabras-prohibidas-es.txt` del backend (propuesta inicial, pendiente de revisión de Daniel); la foto del chef desde el equipo (`PUT /chef-profiles/{id}/foto`) sigue sin probarse desde el front. **Endpoints que ya existen y el front todavía no usa** (mejoras opcionales): `GET /chef-profiles/user/{userId}` (hoy `PerfilChef` y `DetallePlato` listan todos los perfiles y buscan), `GET /subpedidos/me`, `GET /subpedidos/chef/{id}/pendientes` (el globito cuenta los subpedidos en el front) y los favoritos.
 
 ## 10. Antes de dar un paso por terminado
 

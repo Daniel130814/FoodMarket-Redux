@@ -81,7 +81,6 @@ function Dashboard({ onSesionVencida }) {
         Cómo viene tu cocina: lo que vendiste, en qué estado están tus pedidos y qué platos salen más.
       </p>
 
-      {/* TODO(backend): el subpedido no trae la fecha, así que no hay "ventas por día". */}
       <ContenidoAsync
         cargando={loading}
         error={error}
