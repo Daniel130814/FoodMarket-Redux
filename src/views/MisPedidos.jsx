@@ -76,6 +76,10 @@ function MisPedidos({ onSesionVencida, onAviso, onVolverAPedir }) {
   const [calificacion, setCalificacion] = useState('5')
   const [comentario, setComentario] = useState('')
 
+  // Error de un 400 del backend (se muestra junto al comentario) y envío en curso (evita el doble envío).
+  const [errorResena, setErrorResena] = useState(null)
+  const [enviandoResena, setEnviandoResena] = useState(false)
+
   // Platos ya reseñados: la API no tiene "mis reseñas", así que se anotan los de esta sesión y los que dieron 409.
   const [platosResenados, setPlatosResenados] = useState([])
 
@@ -183,13 +187,19 @@ function MisPedidos({ onSesionVencida, onAviso, onVolverAPedir }) {
   const abrirResena = (detalle) => {
     setCalificacion('5')
     setComentario('')
+    setErrorResena(null)
     setPlatoAResenar(detalle)
   }
 
-  // Reseña un plato (POST /resenas/createResena); el comentario es opcional. 400 si no lo recibió, 409 si ya lo reseñó.
+  // Reseña un plato (POST /resenas/createResena); el comentario es opcional. El diálogo queda abierto hasta saber el
+  // resultado: un 400 (lenguaje no permitido, plato no entregado) se muestra junto al comentario; 409 si ya lo reseñó.
   const confirmarResena = () => {
+    if (enviandoResena) {
+      return
+    }
     const { platoId, platoNombre } = platoAResenar
-    setPlatoAResenar(null)
+    setEnviandoResena(true)
+    setErrorResena(null)
 
     fetch(`${API_URL}/resenas/createResena`, {
       method: 'POST',
@@ -205,10 +215,16 @@ function MisPedidos({ onSesionVencida, onAviso, onVolverAPedir }) {
     })
       .then(leerRespuesta)
       .then(() => {
+        setPlatoAResenar(null)
         setPlatosResenados((actuales) => [...actuales, platoId])
         onAviso(`Gracias por tu reseña de ${platoNombre}`)
       })
       .catch((fallo) => {
+        if (fallo.status === 400) {
+          setErrorResena(fallo.message)
+          return
+        }
+        setPlatoAResenar(null)
         if (fallo.status === 401) {
           onSesionVencida()
           return
@@ -219,6 +235,7 @@ function MisPedidos({ onSesionVencida, onAviso, onVolverAPedir }) {
         }
         onAviso(mensajeDe(fallo), 'error')
       })
+      .finally(() => setEnviandoResena(false))
   }
 
   return (
@@ -259,9 +276,17 @@ function MisPedidos({ onSesionVencida, onAviso, onVolverAPedir }) {
         calificacion={calificacion}
         comentario={comentario}
         onCalificacionChange={(event) => setCalificacion(event.target.value)}
-        onComentarioChange={(event) => setComentario(event.target.value)}
+        errorBackend={errorResena}
+        enviando={enviandoResena}
+        onComentarioChange={(event) => {
+          setComentario(event.target.value)
+          setErrorResena(null)
+        }}
         onConfirm={confirmarResena}
-        onCancel={() => setPlatoAResenar(null)}
+        onCancel={() => {
+          setPlatoAResenar(null)
+          setErrorResena(null)
+        }}
       />
 
       <PagoDialog

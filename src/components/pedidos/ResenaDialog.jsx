@@ -1,9 +1,11 @@
 // Diálogo para reseñar un plato de un pedido entregado (views/MisPedidos). No hace fetch: todo viene por props.
-// Antes de confirmar revisa el comentario: si tiene lenguaje ofensivo, no llama a onConfirm y muestra el error.
+// El filtro oficial es el del backend (400 "El comentario contiene lenguaje no permitido", que se muestra junto al campo).
+// Este es un aviso rápido, sin pedido: si el comentario tiene lenguaje ofensivo, no llama a onConfirm y muestra el error.
 import { useState } from 'react'
 import Dialog from '../comunes/Dialog'
 
-// Lista inicial (se revisa y completa a mano). Va sin tildes y sin letras repetidas, como queda el texto normalizado.
+// Lista del aviso rápido (no es la oficial: manda palabras-prohibidas-es.txt del backend, que puede bloquear más palabras).
+// Va sin tildes y sin letras repetidas, como queda el texto normalizado.
 const PALABRAS_PROHIBIDAS = [
   'pelotudo', 'pelotuda', 'boludo', 'boluda', 'forro', 'forra', 'puta', 'puto', 'mierda', 'carajo',
   'idiota', 'imbecil', 'estupido', 'estupida', 'tarado', 'tarada', 'trolo', 'mogolico', 'cagon',
@@ -37,8 +39,9 @@ const tieneLenguajeOfensivo = (texto) => {
 }
 
 // Props: plato ({ platoId, platoNombre } o null = cerrado); calificacion y comentario (valores de los campos);
-// onCalificacionChange y onComentarioChange (event); onConfirm; onCancel.
-function ResenaDialog({ plato, calificacion, comentario, onCalificacionChange, onComentarioChange, onConfirm, onCancel }) {
+// errorBackend (mensaje de un 400 del backend, por ejemplo "El comentario contiene lenguaje no permitido", o null);
+// enviando (la reseña se está enviando); onCalificacionChange y onComentarioChange (event); onConfirm; onCancel.
+function ResenaDialog({ plato, calificacion, comentario, errorBackend, enviando, onCalificacionChange, onComentarioChange, onConfirm, onCancel }) {
   // Error junto al campo del comentario (null = sin error).
   const [errorComentario, setErrorComentario] = useState(null)
 
@@ -49,6 +52,9 @@ function ResenaDialog({ plato, calificacion, comentario, onCalificacionChange, o
     }
     onConfirm()
   }
+
+  // El error del filtro del front tiene prioridad; si no hay, se muestra el que mandó el backend.
+  const mensajeError = errorComentario ?? errorBackend
 
   const cerrar = () => {
     setErrorComentario(null)
@@ -66,7 +72,7 @@ function ResenaDialog({ plato, calificacion, comentario, onCalificacionChange, o
       open={plato !== null}
       title={plato === null ? '' : `Reseñar ${plato.platoNombre}`}
       message="Contale a otros cómo estuvo. Solo podés dejar una reseña por plato."
-      confirmLabel="Publicar reseña"
+      confirmLabel={enviando ? 'Publicando...' : 'Publicar reseña'}
       confirmVariant="primary"
       cancelLabel="Volver"
       onConfirm={confirmar}
@@ -86,12 +92,12 @@ function ResenaDialog({ plato, calificacion, comentario, onCalificacionChange, o
         className="field"
         value={comentario}
         onChange={cambiarComentario}
-        aria-invalid={errorComentario ? 'true' : 'false'}
+        aria-invalid={mensajeError ? 'true' : 'false'}
       />
-      {errorComentario && (
+      {mensajeError && (
         <p className="hint hint--error">
           <span className="material-symbols-outlined text-[18px]" aria-hidden="true">error</span>
-          <span>{errorComentario}</span>
+          <span>{mensajeError}</span>
         </p>
       )}
     </Dialog>
