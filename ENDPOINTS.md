@@ -3,6 +3,7 @@
 Generado leyendo el código (controllers, DTOs, entidades, servicios, seguridad, `application.properties`).
 
 > **Actualización (16/11/2026):** los cambios del backend para la 3.ª entrega están en [`ENDPOINTS-CAMBIOS.md`](ENDPOINTS-CAMBIOS.md) (favoritos, filtro de insultos, `clienteNombre`, `chefNombre`, `GET /resenas/chef/{id}`, filtro `chefId`, `PATCH` de stock y estado, datos semilla, etc.). **Si un dato de este archivo contradice a `ENDPOINTS-CAMBIOS.md`, manda `ENDPOINTS-CAMBIOS.md`.**
+
 Convención: **NO EXISTE** = revisado y no está en el código. **NO CONFIRMADO** = no se puede afirmar solo leyendo el código.
 
 ---
