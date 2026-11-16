@@ -35,6 +35,26 @@ export const login = createAsyncThunk(
   },
 );
 
+// Igual que login: el usuario duplicado es un 400 y el mensaje del backend llega por rejectWithValue.
+export const register = createAsyncThunk(
+  "auth/register",
+  async (datos, { rejectWithValue }) => {
+    try {
+      const { data: auth } = await axios.post(
+        `${API_URL}/api/v1/auth/register`,
+        datos,
+      );
+      const { access_token, userId, role } = auth.data;
+      // El registro no trae el nombre: se usa el del formulario (no hace falta GET /users/me)
+      return { token: access_token, user: { userId, role, nombre: datos.nombre } };
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message ?? "No se pudo conectar con el servidor",
+      );
+    }
+  },
+);
+
 const authSlice = createSlice({
   name: "auth",
   initialState,
@@ -56,6 +76,20 @@ const authSlice = createSlice({
       .addCase(login.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload; // mensaje del backend (rejectWithValue)
+      })
+      .addCase(register.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(register.fulfilled, (state, action) => {
+        state.loading = false;
+        state.isAuthenticated = true;
+        state.token = action.payload.token;
+        state.user = action.payload.user;
+      })
+      .addCase(register.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       });
   },
 });
