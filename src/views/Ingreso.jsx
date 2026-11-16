@@ -1,22 +1,10 @@
-// Ingreso (/ingreso): login con POST /api/v1/auth/authenticate y después GET /users/me para el nombre.
+// Ingreso (/ingreso): formulario de login; el thunk login (authSlice) hace las llamadas y guarda la sesión.
 
 import { useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import Logo from '../components/layout/Logo'
-
-// URL base del backend (viene de .env).
-const API_URL = import.meta.env.VITE_API_URL
-
-// Devuelve `data` o lanza un Error con message y status (fetch no manda los errores HTTP al .catch).
-const leerRespuesta = (response) =>
-  response.json().then((cuerpo) => {
-    if (!response.ok) {
-      const fallo = new Error(cuerpo.message)
-      fallo.status = response.status
-      throw fallo
-    }
-    return cuerpo.data
-  })
+import { login } from '../components/Redux/authSlice'
 
 // Props: onLogin (iniciarSesion de App; recibe { token, userId, role, nombre }).
 function Ingreso({ onLogin }) {
@@ -25,12 +13,14 @@ function Ingreso({ onLogin }) {
 
   const [mostrarClave, setMostrarClave] = useState(false)
 
-  // errorGeneral: texto del cartel rojo ('' = sin cartel). errores: un mensaje por campo.
-  const [errorGeneral, setErrorGeneral] = useState('')
+  // errores: un mensaje por campo. El error del backend y el "cargando" vienen del store.
   const [errores, setErrores] = useState({})
+  const dispatch = useDispatch()
+  const { loading, error } = useSelector((state) => state.auth)
 
-  // Envío en curso: deshabilita el botón para evitar el doble clic.
-  const [enviando, setEnviando] = useState(false)
+  // Solo se muestra el error del store después de enviar acá (si no, aparecería uno viejo de otra vista).
+  const [enviado, setEnviado] = useState(false)
+  const errorGeneral = enviado ? error : null
 
   const navigate = useNavigate()
 
@@ -63,7 +53,6 @@ function Ingreso({ onLogin }) {
 
     if (Object.keys(nuevosErrores).length > 0) {
       setErrores(nuevosErrores)
-      setErrorGeneral('')
       return
     }
 
@@ -71,37 +60,16 @@ function Ingreso({ onLogin }) {
     const username = datos.username.trim().toLowerCase()
 
     setErrores({})
-    setErrorGeneral('')
-    setEnviando(true)
+    setEnviado(true)
 
-    fetch(`${API_URL}/api/v1/auth/authenticate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password: datos.password }),
-    })
-      .then(leerRespuesta)
-      .then((auth) =>
-        // El login no trae el nombre: se pide con GET /users/me usando el token.
-        fetch(`${API_URL}/users/me`, { headers: { Authorization: `Bearer ${auth.access_token}` } })
-          .then(leerRespuesta)
-          .then((usuario) => ({ auth, usuario }))
-      )
-      .then(({ auth, usuario }) => {
-        // Ojo: el token viene en access_token, no en token.
-        onLogin({ token: auth.access_token, userId: auth.userId, role: auth.role, nombre: usuario.nombre })
+    dispatch(login({ username, password: datos.password })).then((resultado) => {
+      if (resultado.type === 'auth/login/fulfilled') {
+        const { token, user } = resultado.payload
+        // Transitorio: App todavía guarda su propia sesión (se saca en el paso 15.2.d).
+        onLogin({ token, userId: user.userId, role: user.role, nombre: user.nombre })
         navigate(destino)
-      })
-      .catch((fallo) => {
-        // 401 = credenciales incorrectas; sin status, no hubo respuesta del servidor; si no, el mensaje del backend.
-        if (fallo.status === 401) {
-          setErrorGeneral('El usuario o la contraseña no coinciden. Revisalos e intentá de nuevo.')
-        } else if (fallo.status === undefined) {
-          setErrorGeneral('No pudimos conectar con el servidor. Revisá que el backend esté funcionando e intentá de nuevo.')
-        } else {
-          setErrorGeneral(fallo.message)
-        }
-      })
-      .finally(() => setEnviando(false))
+      }
+    })
   }
 
   return (
@@ -125,7 +93,7 @@ function Ingreso({ onLogin }) {
             Pedí tus platos o gestioná los que vendés.
           </p>
 
-          {errorGeneral !== '' && (
+          {errorGeneral && (
             <div
               role="alert"
               className="mt-6 flex gap-3 rounded-lg border border-error/30 bg-error-container p-4 text-on-error-container"
@@ -206,8 +174,8 @@ function Ingreso({ onLogin }) {
               )}
             </div>
 
-            <button type="submit" className="btn btn-primary btn-block !min-h-[54px]" disabled={enviando}>
-              {enviando ? 'Ingresando...' : 'Ingresar'}
+            <button type="submit" className="btn btn-primary btn-block !min-h-[54px]" disabled={loading}>
+              {loading ? 'Ingresando...' : 'Ingresar'}
             </button>
           </form>
 

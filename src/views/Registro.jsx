@@ -1,23 +1,11 @@
-// Registro (/registro): crea la cuenta con POST /api/v1/auth/register, como CLIENTE (compra) o CHEF (vende).
+// Registro (/registro): crea la cuenta como CLIENTE (compra) o CHEF (vende); el thunk register (authSlice) llama al backend.
 
 import { useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import Logo from '../components/layout/Logo'
 import RoleOption from '../components/auth/RoleOption'
-
-// URL base del backend (viene de .env).
-const API_URL = import.meta.env.VITE_API_URL
-
-// Devuelve `data` o lanza un Error con message y status (fetch no manda los errores HTTP al .catch).
-const leerRespuesta = (response) =>
-  response.json().then((cuerpo) => {
-    if (!response.ok) {
-      const fallo = new Error(cuerpo.message)
-      fallo.status = response.status
-      throw fallo
-    }
-    return cuerpo.data
-  })
+import { register } from '../components/Redux/authSlice'
 
 // Props: onLogin (iniciarSesion de App; recibe { token, userId, role, nombre }).
 function Registro({ onLogin }) {
@@ -38,12 +26,14 @@ function Registro({ onLogin }) {
 
   const [mostrarClave, setMostrarClave] = useState(false)
 
-  // Errores por campo y error general (por ejemplo, usuario duplicado).
+  // Errores por campo. El error del backend (usuario duplicado) y el "cargando" vienen del store.
   const [errores, setErrores] = useState({})
-  const [errorGeneral, setErrorGeneral] = useState('')
+  const dispatch = useDispatch()
+  const { loading, error } = useSelector((state) => state.auth)
 
-  // Envío en curso: deshabilita el botón para evitar el doble clic.
-  const [enviando, setEnviando] = useState(false)
+  // Solo se muestra el error del store después de enviar acá (si no, aparecería uno viejo de otra vista).
+  const [enviado, setEnviado] = useState(false)
+  const errorGeneral = enviado ? error : null
 
   const navigate = useNavigate()
 
@@ -86,7 +76,6 @@ function Registro({ onLogin }) {
 
     if (Object.keys(nuevosErrores).length > 0) {
       setErrores(nuevosErrores)
-      setErrorGeneral('')
       return
     }
 
@@ -101,29 +90,16 @@ function Registro({ onLogin }) {
     }
 
     setErrores({})
-    setErrorGeneral('')
-    setEnviando(true)
+    setEnviado(true)
 
-    fetch(`${API_URL}/api/v1/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(cuerpoPedido),
-    })
-      .then(leerRespuesta)
-      .then((data) => {
-        // El token viene en access_token (no en token). El nombre no viene: se usa el del formulario.
-        onLogin({ token: data.access_token, userId: data.userId, role: data.role, nombre: cuerpoPedido.nombre })
+    dispatch(register(cuerpoPedido)).then((resultado) => {
+      if (resultado.type === 'auth/register/fulfilled') {
+        const { token, user } = resultado.payload
+        // Transitorio: App todavía guarda su propia sesión (se saca en el paso 15.2.d).
+        onLogin({ token, userId: user.userId, role: user.role, nombre: user.nombre })
         navigate(destino)
-      })
-      .catch((fallo) => {
-        // Con status viene del backend (por ejemplo el 400 "usuario ya existe"); sin status, no hubo respuesta.
-        setErrorGeneral(
-          fallo.status === undefined
-            ? 'No pudimos conectar con el servidor. Revisá que el backend esté funcionando e intentá de nuevo.'
-            : fallo.message
-        )
-      })
-      .finally(() => setEnviando(false))
+      }
+    })
   }
 
   return (
@@ -322,8 +298,8 @@ function Registro({ onLogin }) {
               )}
             </div>
 
-            <button type="submit" className="btn btn-primary btn-block !min-h-[54px]" disabled={enviando}>
-              {enviando ? 'Creando cuenta...' : 'Crear cuenta'}
+            <button type="submit" className="btn btn-primary btn-block !min-h-[54px]" disabled={loading}>
+              {loading ? 'Creando cuenta...' : 'Crear cuenta'}
             </button>
           </form>
 
