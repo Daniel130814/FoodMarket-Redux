@@ -1,6 +1,6 @@
 // Formulario para publicar (/publicar) o editar (/publicar/:id) un plato. Solo CHEF; los campos son los de PlatoRequest.
 import { useEffect, useState } from 'react'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import ImageUrlList from '../components/chef/ImageUrlList'
 import ImageFilePicker from '../components/chef/ImageFilePicker'
@@ -10,6 +10,8 @@ import EmptyState from '../components/comunes/EmptyState'
 import Alert from '../components/comunes/Alert'
 import LoadingState from '../components/comunes/LoadingState'
 import ErrorState from '../components/comunes/ErrorState'
+import { fetchCategorias } from '../components/Redux/categoriasSlice'
+import { fetchIngredientes } from '../components/Redux/ingredientesSlice'
 
 const API_URL = import.meta.env.VITE_API_URL
 
@@ -29,12 +31,6 @@ const leerRespuesta = (response) =>
     }
     return cuerpo.data
   })
-
-// GET de un catálogo público (categorías o ingredientes), sin token; las listas vacías llegan como null.
-const pedirCatalogo = (ruta) =>
-  fetch(`${API_URL}${ruta}`)
-    .then(leerRespuesta)
-    .then((data) => data ?? [])
 
 // GET de un plato. Lleva el token aunque la ruta es pública: un BORRADOR o PAUSADO solo se le devuelve a su dueño.
 const pedirPlato = (platoId, token, signal) =>
@@ -146,10 +142,12 @@ function PublicarPlato({ onSesionVencida, onAviso }) {
   // Archivos de imagen elegidos en el equipo; se suben al guardar.
   const [archivos, setArchivos] = useState([])
 
-  // Catálogos de categorías e ingredientes, con su carga y error.
-  const [categorias, setCategorias] = useState([])
-  const [ingredientes, setIngredientes] = useState([])
-  const [cargando, setCargando] = useState(true)
+  // Catálogos de categorías e ingredientes: vienen del store, con su carga y error.
+  const dispatch = useDispatch()
+  const { items: categorias, loading: cargandoCategorias, error: errorCategorias } = useSelector((state) => state.categorias)
+  const { items: ingredientes, loading: cargandoIngredientes, error: errorIngredientes } = useSelector((state) => state.ingredientes)
+
+  // Error al pedir el plato a editar.
   const [error, setError] = useState(null)
 
   // Guardado en curso (evita el doble envío) y error del backend.
@@ -159,16 +157,11 @@ function PublicarPlato({ onSesionVencida, onAviso }) {
   // Datos del formulario: el borrador del chef o, si no escribió nada, el plato a editar (o vacío al crear).
   const datos = edicion ?? (platoAEditar === undefined ? FORM_VACIO : aFormulario(platoAEditar, categorias))
 
-  // Al abrir: GET de las categorías y los ingredientes juntos (Promise.all).
+  // Al abrir: las categorías y los ingredientes (públicos, a Redux).
   useEffect(() => {
-    Promise.all([pedirCatalogo('/categories'), pedirCatalogo('/ingredientes')])
-      .then(([listaCategorias, listaIngredientes]) => {
-        setCategorias(listaCategorias)
-        setIngredientes(listaIngredientes)
-      })
-      .catch((fallo) => setError(mensajeDe(fallo)))
-      .finally(() => setCargando(false))
-  }, [])
+    dispatch(fetchCategorias())
+    dispatch(fetchIngredientes())
+  }, [dispatch])
 
   // GET /platos/{id} al editar (sirve con F5 y con borradores o pausados). Se salta al crear.
   useEffect(() => {
@@ -202,11 +195,13 @@ function PublicarPlato({ onSesionVencida, onAviso }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, token])
 
-  if (cargando || cargandoPlato) {
+  if (cargandoCategorias || cargandoIngredientes || cargandoPlato) {
     return <LoadingState message="Cargando el formulario..." />
   }
-  if (error !== null) {
-    return <ErrorState message={error} />
+  // Un catálogo que falla corta todo, como antes: sin categorías el PUT las borraría del plato.
+  const errorPantalla = error ?? errorCategorias ?? errorIngredientes
+  if (errorPantalla !== null) {
+    return <ErrorState message={errorPantalla} />
   }
 
   if (editando && platoAEditar === undefined) {
