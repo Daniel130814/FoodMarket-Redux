@@ -5,6 +5,7 @@ import platosReducer from "./platosSlice";
 import categoriasReducer from "./categoriasSlice";
 import ingredientesReducer from "./ingredientesSlice";
 import resenasReducer from "./resenasSlice";
+import subpedidosReducer from "./subpedidosSlice";
 
 export const store = configureStore({
   reducer: {
@@ -13,5 +14,6 @@ export const store = configureStore({
     categorias: categoriasReducer,
     ingredientes: ingredientesReducer,
     resenas: resenasReducer,
+    subpedidos: subpedidosReducer,
   },
 });
