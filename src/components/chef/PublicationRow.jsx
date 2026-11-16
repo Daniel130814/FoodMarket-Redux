@@ -12,6 +12,9 @@ const ESTADOS = {
 
 const STOCK_MAXIMO = 99
 
+// Con este stock o menos (y más de 0) se avisa que queda poco; es el mismo umbral que usa PlatoCard.
+const STOCK_BAJO = 5
+
 // Props: plato (PlatoResponse), onStockChange (platoId, stock), onTogglePause (platoId), onOpenDiscount (plato),
 // onOpenDelete (platoId). La fila no cambia nada por su cuenta: solo avisa.
 function PublicationRow({ plato, onStockChange, onTogglePause, onOpenDiscount, onOpenDelete }) {
@@ -32,7 +35,13 @@ function PublicationRow({ plato, onStockChange, onTogglePause, onOpenDiscount, o
       <div className="min-w-0">
         <h3 className="font-display text-title-md text-primary">{nombre}</h3>
         <p className="text-body-sm text-on-surface-variant">{categorias.join(' · ')}</p>
-        <p className="mt-2"><span className={`badge ${ESTADOS[estado].clase}`}>{ESTADOS[estado].etiqueta}</span></p>
+        <p className="mt-2 flex flex-wrap items-center gap-2">
+          <span className={`badge ${ESTADOS[estado].clase}`}>{ESTADOS[estado].etiqueta}</span>
+          {/* Solo un plato a la venta: uno agotado, pausado o en borrador no necesita el aviso */}
+          {estado === 'PUBLICADO' && stockDisponible > 0 && stockDisponible <= STOCK_BAJO && (
+            <span className="badge badge-terra">Stock bajo</span>
+          )}
+        </p>
       </div>
       <div className="col-span-2 flex items-baseline justify-between gap-3 md:col-span-1 md:block">
         <span className="text-body-sm text-on-surface-variant md:hidden">Precio</span>
