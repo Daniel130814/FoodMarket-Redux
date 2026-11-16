@@ -1,12 +1,11 @@
 // Mis publicaciones (/mis-publicaciones, solo CHEF): sus platos en cualquier estado, con stock, pausa, descuento y eliminar.
 import { useEffect, useState } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useSelector } from 'react-redux'
 import { Link } from 'react-router-dom'
 import FilterChips from '../components/platos/FilterChips'
 import PublicationRow from '../components/chef/PublicationRow'
 import Dialog from '../components/comunes/Dialog'
 import ContenidoAsync from '../components/comunes/ContenidoAsync'
-import { fetchCategorias } from '../components/Redux/categoriasSlice'
 
 const API_URL = import.meta.env.VITE_API_URL
 
@@ -31,10 +30,7 @@ const leerRespuesta = (response) =>
 function MisPublicaciones({ onSesionVencida, onAviso }) {
   // Token del store (ruta privada).
   const token = useSelector((state) => state.auth.token)
-  // Platos del chef y categorías (el PUT las pide por id y el plato las trae por nombre). Las categorías vienen del store.
-  const dispatch = useDispatch()
   const [platos, setPlatos] = useState([])
-  const { items: categorias, loading: cargandoCategorias, error: errorCategorias } = useSelector((state) => state.categorias)
 
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
@@ -49,11 +45,6 @@ function MisPublicaciones({ onSesionVencida, onAviso }) {
   const [platoDescuentoId, setPlatoDescuentoId] = useState(null)
   const [descuentoTexto, setDescuentoTexto] = useState('')
   const [errorDescuento, setErrorDescuento] = useState(null)
-
-  // Al abrir: categorías (público, a Redux).
-  useEffect(() => {
-    dispatch(fetchCategorias())
-  }, [dispatch])
 
   // Al abrir: GET /platos/mis-platos (con token, todos los estados).
   useEffect(() => {
@@ -80,32 +71,16 @@ function MisPublicaciones({ onSesionVencida, onAviso }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
 
-  // Guarda un cambio con PUT /platos/{id}: no hay PATCH de stock ni estado y el PUT reemplaza el plato entero,
-  // así que se arma el PlatoRequest completo y se pisa solo lo que cambia. mensaje(plato) arma el texto del Toast.
-  const guardarCambios = (plato, cambios, mensaje) => {
-    const platoRequest = {
-      nombre: plato.nombre,
-      descripcion: plato.descripcion,
-      precio: plato.precio,
-      stockDisponible: plato.stockDisponible,
-      estado: plato.estado,
-      imagenesUrls: plato.imagenesUrls,
-      categoriasIds: categorias.filter((categoria) => plato.categorias.includes(categoria.description)).map((categoria) => categoria.id),
-      ingredientes: plato.ingredientes.map((ingrediente) => ({
-        ingredienteId: ingrediente.ingredienteId,
-        cantidad: ingrediente.cantidad,
-        unidadMedida: ingrediente.unidadMedida,
-      })),
-      ...cambios,
-    }
-
-    fetch(`${API_URL}/platos/${plato.id}`, {
-      method: 'PUT',
+  // Guarda un cambio con PATCH /platos/{id}/stock o /estado (ruta). El backend responde con el plato actualizado: la fila
+  // se reemplaza con él, sin volver a pedir la lista. mensaje(plato) arma el texto del Toast.
+  const guardarCambio = (ruta, platoId, cuerpo, mensaje) => {
+    fetch(`${API_URL}/platos/${platoId}/${ruta}`, {
+      method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`, // ruta privada
       },
-      body: JSON.stringify(platoRequest),
+      body: JSON.stringify(cuerpo),
     })
       .then(leerRespuesta)
       .then((guardado) => {
@@ -121,10 +96,9 @@ function MisPublicaciones({ onSesionVencida, onAviso }) {
       })
   }
 
-  // Ajusta el stock sin mandar "estado": el backend pasa PUBLICADO a AGOTADO con stock 0 y de AGOTADO a PUBLICADO si hay stock.
+  // Ajusta el stock: el backend pasa PUBLICADO a AGOTADO con stock 0 y de AGOTADO a PUBLICADO si hay stock.
   const ajustarStock = (platoId, stock) => {
-    const plato = platos.find((p) => p.id === platoId)
-    guardarCambios(plato, { stockDisponible: stock, estado: undefined }, (guardado) => `Stock de ${guardado.nombre}: ${guardado.stockDisponible}`)
+    guardarCambio('stock', platoId, { stockDisponible: stock }, (guardado) => `Stock de ${guardado.nombre}: ${guardado.stockDisponible}`)
   }
 
   // Pausa un plato o reactiva uno pausado (mandando PUBLICADO; el backend responde 400 si no tiene imagen).
@@ -132,10 +106,10 @@ function MisPublicaciones({ onSesionVencida, onAviso }) {
     const plato = platos.find((p) => p.id === platoId)
 
     if (plato.estado !== 'PAUSADO') {
-      guardarCambios(plato, { estado: 'PAUSADO' }, (guardado) => `${guardado.nombre} quedó pausado`)
+      guardarCambio('estado', platoId, { estado: 'PAUSADO' }, (guardado) => `${guardado.nombre} quedó pausado`)
       return
     }
-    guardarCambios(plato, { estado: 'PUBLICADO' }, (guardado) => `${guardado.nombre} se reactivó`)
+    guardarCambio('estado', platoId, { estado: 'PUBLICADO' }, (guardado) => `${guardado.nombre} se reactivó`)
   }
 
   // Aplica (PATCH, 0,01 a 99,99) o quita (DELETE, con 0) el descuento de un plato.
@@ -260,8 +234,8 @@ function MisPublicaciones({ onSesionVencida, onAviso }) {
           <span></span><span>Plato</span><span>Precio</span><span>Stock</span><span className="text-right">Acciones</span>
         </div>
         <ContenidoAsync
-          cargando={cargando || cargandoCategorias}
-          error={error ?? errorCategorias}
+          cargando={cargando}
+          error={error}
           vacio={platosVisibles.length === 0}
           mensajeCarga="Cargando tus publicaciones..."
           mensajeVacio="No tenés platos en este estado."
