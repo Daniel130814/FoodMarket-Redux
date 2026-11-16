@@ -4,16 +4,30 @@ import { useState } from 'react'
 import { useSelector } from 'react-redux'
 import { Link, NavLink } from 'react-router-dom'
 import Logo from './Logo'
+import MenuMovil from './MenuMovil'
 
 const ENLACES = [
   { texto: 'Inicio', ruta: '/' },
   { texto: 'Platos', ruta: '/catalogo' },
 ]
 
+// Enlaces extra: cada rol ve solo los suyos.
+const ENLACES_POR_ROL = {
+  CLIENTE: [{ texto: 'Mis pedidos', ruta: '/pedidos' }],
+  CHEF: [
+    { texto: 'Mis publicaciones', ruta: '/mis-publicaciones' },
+    { texto: 'Pedidos recibidos', ruta: '/pedidos-recibidos' },
+  ],
+  ADMIN: [{ texto: 'Administración', ruta: '/admin' }],
+}
+
 // Props: cartCount (número de la insignia), onLogout (App cierra la sesión). La sesión se lee del store.
 function Header({ cartCount, onLogout }) {
   // Usuario logueado (null sin sesión): decide qué se muestra.
   const sesion = useSelector((state) => state.auth.user)
+
+  // Enlaces comunes más los del rol (sin sesión, solo los comunes).
+  const enlaces = sesion === null ? ENLACES : [...ENLACES, ...ENLACES_POR_ROL[sesion.role]]
 
   // Menú móvil abierto o cerrado (UI propia del Header).
   const [menuOpen, setMenuOpen] = useState(false)
@@ -38,24 +52,11 @@ function Header({ cartCount, onLogout }) {
 
         {/* Navegación (pantallas grandes) */}
         <nav className="hidden items-center gap-1 lg:flex" aria-label="Principal">
-          {ENLACES.map((enlace) => (
+          {enlaces.map((enlace) => (
             <NavLink key={enlace.ruta} to={enlace.ruta} className="nav-link">
               {enlace.texto}
             </NavLink>
           ))}
-          {/* Cada enlace lo ve solo el rol que corresponde */}
-          {sesion !== null && sesion.role === 'CLIENTE' && (
-            <NavLink to="/pedidos" className="nav-link">Mis pedidos</NavLink>
-          )}
-          {sesion !== null && sesion.role === 'CHEF' && (
-            <NavLink to="/mis-publicaciones" className="nav-link">Mis publicaciones</NavLink>
-          )}
-          {sesion !== null && sesion.role === 'CHEF' && (
-            <NavLink to="/pedidos-recibidos" className="nav-link">Pedidos recibidos</NavLink>
-          )}
-          {sesion !== null && sesion.role === 'ADMIN' && (
-            <NavLink to="/admin" className="nav-link">Administración</NavLink>
-          )}
         </nav>
 
         <div className="ml-auto flex items-center gap-1.5">
@@ -93,98 +94,12 @@ function Header({ cartCount, onLogout }) {
 
       {/* Menú móvil */}
       {menuOpen && (
-        <div id="menu-movil" className="border-t border-hairline bg-surface px-4 pb-4 pt-2 lg:hidden">
-          <nav aria-label="Principal móvil" className="flex flex-col">
-            {ENLACES.map((enlace) => (
-              <NavLink
-                key={enlace.ruta}
-                to={enlace.ruta}
-                className="nav-link block !py-3"
-                onClick={() => setMenuOpen(false)}
-              >
-                {enlace.texto}
-              </NavLink>
-            ))}
-            {sesion !== null && sesion.role === 'CLIENTE' && (
-              <NavLink
-                to="/pedidos"
-                className="nav-link block !py-3"
-                onClick={() => setMenuOpen(false)}
-              >
-                Mis pedidos
-              </NavLink>
-            )}
-            {sesion !== null && sesion.role === 'CHEF' && (
-              <NavLink
-                to="/mis-publicaciones"
-                className="nav-link block !py-3"
-                onClick={() => setMenuOpen(false)}
-              >
-                Mis publicaciones
-              </NavLink>
-            )}
-            {sesion !== null && sesion.role === 'CHEF' && (
-              <NavLink
-                to="/pedidos-recibidos"
-                className="nav-link block !py-3"
-                onClick={() => setMenuOpen(false)}
-              >
-                Pedidos recibidos
-              </NavLink>
-            )}
-            {sesion !== null && sesion.role === 'ADMIN' && (
-              <NavLink
-                to="/admin"
-                className="nav-link block !py-3"
-                onClick={() => setMenuOpen(false)}
-              >
-                Administración
-              </NavLink>
-            )}
-          </nav>
-
-          <nav aria-label="Cuenta móvil" className="mt-2 flex flex-col border-t border-hairline pt-2">
-            {sesion === null ? (
-              <>
-                <NavLink
-                  to="/ingreso"
-                  className="nav-link block !py-3"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  Ingresar
-                </NavLink>
-                <NavLink
-                  to="/registro"
-                  className="nav-link block !py-3"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  Registrarse
-                </NavLink>
-              </>
-            ) : (
-              <>
-                <p className="px-3 py-2 text-label-md text-on-surface-variant">Hola, {sesion.nombre}</p>
-                <NavLink
-                  to="/perfil"
-                  className="nav-link block !py-3"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  Mi perfil
-                </NavLink>
-                <button
-                  type="button"
-                  className="nav-link block !py-3 text-left"
-                  onClick={() => {
-                    setMenuOpen(false)
-                    onLogout()
-                  }}
-                >
-                  Salir
-                </button>
-              </>
-            )}
-          </nav>
-        </div>
+        <MenuMovil
+          enlaces={enlaces}
+          sesion={sesion}
+          onCerrar={() => setMenuOpen(false)}
+          onLogout={onLogout}
+        />
       )}
     </header>
   )
