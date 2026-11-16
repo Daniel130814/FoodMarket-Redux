@@ -1,18 +1,15 @@
-// Una línea del carrito: nombre, selector de cantidad y botón Quitar.
+// Una línea del carrito: foto, nombre, chef, selector de cantidad (con tope en el stock) y botón Quitar.
 import QuantityStepper from './QuantityStepper'
 
-// Tope del selector: la API no manda el stock en los ítems, así que si se lo supera el backend responde 400 y App lo avisa.
-const CANTIDAD_MAXIMA = 99
-
-// Props: item (ítem del carrito de la API), imagenUrl (foto del plato o undefined), onQuantityChange (itemId, cantidad), onRemove (itemId).
-function CartItem({ item, imagenUrl, onQuantityChange, onRemove }) {
-  const { id, nombrePlato, cantidad, precioBase, descuentoPorcentaje, precioUnitarioActual, subtotalEstimado } = item
+// Props: item (ítem del carrito de la API), onQuantityChange (itemId, cantidad), onRemove (itemId).
+function CartItem({ item, onQuantityChange, onRemove }) {
+  const { id, nombrePlato, cantidad, precioBase, descuentoPorcentaje, precioUnitarioActual, subtotalEstimado, imagenUrl, stockDisponible, chefNombre } = item
   const formatear = (monto) => `$${monto.toLocaleString('es-AR')}`
 
   return (
     <li className="flex gap-4 py-5 first:pt-0 last:pb-0">
-      {/* TODO(backend): stockDisponible y chefNombre en los ítems del carrito. Sin foto se muestra un ícono. */}
-      {imagenUrl === undefined ? (
+      {/* Un plato sin imagen llega con imagenUrl en null: se muestra un ícono */}
+      {imagenUrl === null ? (
         <div
           className="grid h-20 w-20 flex-none place-items-center rounded-md bg-surface-container text-on-surface-variant sm:h-[104px] sm:w-[104px]"
           aria-hidden="true"
@@ -24,12 +21,13 @@ function CartItem({ item, imagenUrl, onQuantityChange, onRemove }) {
       )}
       <div className="min-w-0 flex-1">
         <h3 className="font-display text-title-md text-primary">{nombrePlato}</h3>
+        <p className="text-body-sm text-on-surface-variant">{chefNombre}</p>
         <div className="mt-3 flex items-center justify-between gap-3">
           {/* Avisa con el id del ítem, no del plato */}
           <QuantityStepper
             value={cantidad}
             min={1}
-            max={CANTIDAD_MAXIMA}
+            max={stockDisponible}
             onChange={(nueva) => onQuantityChange(id, nueva)}
           />
           <p className="font-display text-price-md tabular text-primary">{formatear(subtotalEstimado)}</p>

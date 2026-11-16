@@ -1,12 +1,10 @@
 // Cesta (/cesta, CLIENTE): muestra la cesta que le pasa App y sigue al checkout.
-import { useEffect, useState } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import CartItem from '../components/cesta/CartItem'
 import OrderSummary from '../components/cesta/OrderSummary'
 import EmptyState from '../components/comunes/EmptyState'
 import Dialog from '../components/comunes/Dialog'
-import { fetchPlatos } from '../components/Redux/platosSlice'
 
 // Props (de App): carrito, cartCount (unidades), onQuantityChange (itemId, cantidad), onRemove (itemId), onClear (vacía la cesta).
 function Carrito({ carrito, cartCount, onQuantityChange, onRemove, onClear }) {
@@ -14,16 +12,6 @@ function Carrito({ carrito, cartCount, onQuantityChange, onRemove, onClear }) {
 
   // Diálogo de "Vaciar cesta" abierto o cerrado.
   const [confirmandoVaciar, setConfirmandoVaciar] = useState(false)
-
-  // Los ítems de la API no traen imagen: se piden los platos al catálogo (público, sin token) y se usa la primera foto de cada uno.
-  const dispatch = useDispatch()
-  const { items: platos } = useSelector((state) => state.platos)
-  const fotos = Object.fromEntries(platos.map((plato) => [plato.id, plato.imagenesUrls[0]]))
-
-  // Al abrir: GET /platos. Si falla se queda el ícono de siempre, porque la foto es solo decorativa.
-  useEffect(() => {
-    dispatch(fetchPlatos())
-  }, [dispatch])
 
   const { items, totalEstimado } = carrito
 
@@ -48,10 +36,10 @@ function Carrito({ carrito, cartCount, onQuantityChange, onRemove, onClear }) {
 
       <div className="mt-10 grid gap-10 lg:grid-cols-12 lg:gap-12">
         <div className="lg:col-span-8">
-          {/* Lista simple: la API no trae el chef en los ítems, así que no se agrupa por chef */}
+          {/* Lista simple, sin agrupar por chef: cada ítem muestra el suyo */}
           <ul className="divide-hair rounded-xl bg-surface-container-lowest p-5 shadow-ambient sm:p-7">
             {items.map((item) => (
-              <CartItem key={item.id} item={item} imagenUrl={fotos[item.platoId]} onQuantityChange={onQuantityChange} onRemove={onRemove} />
+              <CartItem key={item.id} item={item} onQuantityChange={onQuantityChange} onRemove={onRemove} />
             ))}
           </ul>
           <button type="button" className="btn btn-quiet mt-4" onClick={() => setConfirmandoVaciar(true)}>
