@@ -11,6 +11,7 @@ import Button from '../components/comunes/Button'
 import ContenidoAsync from '../components/comunes/ContenidoAsync'
 import { fetchPlatos } from '../components/Redux/platosSlice'
 import { fetchCategorias } from '../components/Redux/categoriasSlice'
+import { fetchResenas } from '../components/Redux/resenasSlice'
 
 const PLATOS_POR_PAGINA = 6
 
@@ -73,6 +74,11 @@ function Catalogo({ onAdd }) {
   const precioMax = errorPrecios === null ? filtros.precioMax.trim() : ''
 
   // Categorías: se piden una sola vez, al abrir. Ruta pública: sin token.
+  // Las reseñas de todos los platos: PlatoCard calcula el promedio de estrellas con ellas.
+  useEffect(() => {
+    dispatch(fetchResenas())
+  }, [dispatch])
+
   useEffect(() => {
     dispatch(fetchCategorias())
   }, [dispatch])

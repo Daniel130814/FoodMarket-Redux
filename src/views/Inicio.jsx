@@ -12,6 +12,7 @@ import FondoMesa from '../components/layout/FondoMesa'
 import ContenidoAsync from '../components/comunes/ContenidoAsync'
 import { fetchPlatos, fetchPlatoRecomendado } from '../components/Redux/platosSlice'
 import { fetchCategorias } from '../components/Redux/categoriasSlice'
+import { fetchResenas } from '../components/Redux/resenasSlice'
 
 // URL base del backend (viene de .env).
 const API_URL = import.meta.env.VITE_API_URL
@@ -38,6 +39,8 @@ function Inicio({ onAdd }) {
   const { items: platos, recomendado, loading: cargando, error } = useSelector((state) => state.platos)
   // Si las categorías fallan, solo se avisa debajo de los chips: el resto de la portada se puede usar.
   const { items: categorias, error: errorCategorias } = useSelector((state) => state.categorias)
+  // Reseñas de todos los platos: sirven para el promedio de cada tarjeta y para "Mejor puntuados".
+  const resenas = useSelector((state) => state.resenas.items)
 
   // Texto del buscador de la portada: se manda al catálogo al enviar.
   const [busqueda, setBusqueda] = useState('')
@@ -55,6 +58,10 @@ function Inicio({ onAdd }) {
 
   useEffect(() => {
     dispatch(fetchCategorias())
+  }, [dispatch])
+
+  useEffect(() => {
+    dispatch(fetchResenas())
   }, [dispatch])
 
   // GET /chef-profiles (público, sin token).
@@ -91,6 +98,17 @@ function Inicio({ onAdd }) {
 
   // Los primeros 4 platos para "Platos de hoy".
   const platosDeHoy = platos.slice(0, 4)
+
+  // Los 4 platos con mejor promedio (la API no lo calcula): se arma con las reseñas del store; desempata quien tiene más.
+  const mejorPuntuados = platos
+    .map((plato) => {
+      const deEstePlato = resenas.filter((resena) => resena.platoId === plato.id)
+      const suma = deEstePlato.reduce((acumulado, resena) => acumulado + resena.calificacion, 0)
+      return { plato, cantidad: deEstePlato.length, promedio: suma / deEstePlato.length }
+    })
+    .filter((puntuado) => puntuado.cantidad > 0)
+    .sort((a, b) => b.promedio - a.promedio || b.cantidad - a.cantidad)
+    .slice(0, 4)
 
   // Contenido de la sección de chefs según el estado (carga, error, vacío o tarjetas), con if y return en vez de ternarios anidados.
   const contenidoChefs = () => {
@@ -182,6 +200,21 @@ function Inicio({ onAdd }) {
           </div>
         </ContenidoAsync>
       </section>
+
+      {/* Solo se muestra si hay platos con reseñas */}
+      {mejorPuntuados.length > 0 && (
+        <section aria-labelledby="h-mejores" className="mt-14 lg:mt-20">
+          <h2 id="h-mejores" className="font-display text-headline-lg text-primary">Mejor puntuados</h2>
+          <p className="mt-2 max-w-xl text-body-md text-on-surface-variant">
+            Los platos que más les gustaron a quienes los pidieron.
+          </p>
+          <div className="mt-10 grid gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
+            {mejorPuntuados.map((puntuado) => (
+              <PlatoCard key={puntuado.plato.id} dish={puntuado.plato} onAdd={onAdd} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* TODO(backend): el perfil de chef no trae el nombre de la persona ni su taller; la tarjeta no los muestra. */}
       <section aria-labelledby="h-chefs" className="mt-20 lg:mt-28">

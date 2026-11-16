@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import Button from '../comunes/Button'
+import PlatoRating from './PlatoRating'
 
 // Tarjeta de un plato (catálogo e inicio). Props: dish (PlatoResponse), onAdd (plato, cantidad; la tarjeta solo avisa).
 function PlatoCard({ dish, onAdd }) {
@@ -39,6 +40,7 @@ function PlatoCard({ dish, onAdd }) {
         <h3 className="dish__title font-display text-title-md text-primary">
           <Link to={`/plato/${id}`}>{nombre}</Link>
         </h3>
+        <PlatoRating platoId={id} />
         <p className="line-clamp-2 text-body-sm text-on-surface-variant">{descripcion}</p>
         <div className="mt-auto flex items-end justify-between gap-3 pt-2">
           <div>
