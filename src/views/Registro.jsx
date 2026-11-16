@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import Logo from '../components/layout/Logo'
 import RoleOption from '../components/auth/RoleOption'
+import RegistroAside from '../components/auth/RegistroAside'
 import Alert from '../components/comunes/Alert'
 import FormField from '../components/comunes/FormField'
 import { register } from '../components/Redux/authSlice'
@@ -228,59 +229,7 @@ function Registro() {
       </main>
 
       {/* Columna derecha: panel visual (oculto en pantallas chicas) */}
-      <aside
-        className="on-dark relative hidden overflow-hidden bg-primary-container lg:flex lg:items-center lg:justify-center lg:p-14"
-        aria-hidden="true"
-      >
-        <div className="max-w-[420px]">
-          <h2 className="font-display text-[34px] leading-[40px] tracking-[-0.02em] text-inverse-on-surface">
-            Comida con nombre y apellido
-          </h2>
-          <ul className="mt-8 space-y-6">
-            <li className="flex gap-4">
-              <span className="grid h-11 w-11 flex-none place-items-center rounded-full bg-white/10 text-primary-fixed">
-                <span className="material-symbols-outlined" aria-hidden="true">
-                  storefront
-                </span>
-              </span>
-              <div>
-                <p className="text-label-lg text-inverse-on-surface">Si cocinás</p>
-                <p className="mt-0.5 text-body-md text-primary-fixed-dim">
-                  Publicá tus platos con fotos, precio y stock. Mirá tus pedidos y tu stock en un solo lugar.
-                </p>
-              </div>
-            </li>
-
-            <li className="flex gap-4">
-              <span className="grid h-11 w-11 flex-none place-items-center rounded-full bg-white/10 text-primary-fixed">
-                <span className="material-symbols-outlined" aria-hidden="true">
-                  shopping_bag
-                </span>
-              </span>
-              <div>
-                <p className="text-label-lg text-inverse-on-surface">Si comprás</p>
-                <p className="mt-0.5 text-body-md text-primary-fixed-dim">
-                  Pedí a talleres de tu barrio y mirá de dónde viene cada ingrediente.
-                </p>
-              </div>
-            </li>
-
-            <li className="flex gap-4">
-              <span className="grid h-11 w-11 flex-none place-items-center rounded-full bg-white/10 text-primary-fixed">
-                <span className="material-symbols-outlined" aria-hidden="true">
-                  verified_user
-                </span>
-              </span>
-              <div>
-                <p className="text-label-lg text-inverse-on-surface">Para todos</p>
-                <p className="mt-0.5 text-body-md text-primary-fixed-dim">
-                  Verificamos cada cocina antes de que publique.
-                </p>
-              </div>
-            </li>
-          </ul>
-        </div>
-      </aside>
+      <RegistroAside />
     </div>
   )
 }
