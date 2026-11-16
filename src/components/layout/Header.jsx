@@ -1,10 +1,12 @@
 // Encabezado fijo (sticky) de las páginas principales.
 
-import { useState } from 'react'
-import { useSelector } from 'react-redux'
-import { Link, NavLink } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import Logo from './Logo'
+import Insignia from './Insignia'
 import MenuMovil from './MenuMovil'
+import { fetchSubpedidosChef } from '../Redux/subpedidosSlice'
 
 const ENLACES = [
   { texto: 'Inicio', ruta: '/' },
@@ -22,13 +24,43 @@ const ENLACES_POR_ROL = {
   ADMIN: [{ texto: 'Administración', ruta: '/admin' }],
 }
 
-// Props: cartCount (número de la insignia), onLogout (App cierra la sesión). La sesión se lee del store.
-function Header({ cartCount, onLogout }) {
+// Subpedidos que el chef todavía tiene que atender.
+const contarNuevos = (subPedidos) =>
+  subPedidos.filter((subPedido) => subPedido.estado === 'PENDIENTE' || subPedido.estado === 'CONFIRMADO').length
+
+// Props: cartCount (número de la insignia), onLogout (App cierra la sesión), onAviso (Toast). La sesión se lee del store.
+function Header({ cartCount, onLogout, onAviso }) {
   // Usuario logueado (null sin sesión): decide qué se muestra.
   const sesion = useSelector((state) => state.auth.user)
 
-  // Enlaces comunes más los del rol (sin sesión, solo los comunes).
-  const enlaces = sesion === null ? ENLACES : [...ENLACES, ...ENLACES_POR_ROL[sesion.role]]
+  // Pedidos nuevos del chef: se piden al ingresar y en cada navegación (no hay avisos en tiempo real ni temporizador).
+  const dispatch = useDispatch()
+  const { pathname } = useLocation()
+  const token = useSelector((state) => state.auth.token)
+  const subPedidos = useSelector((state) => state.subpedidos.items)
+  const esChef = sesion !== null && sesion.role === 'CHEF'
+  const userId = sesion?.userId
+  const nuevos = contarNuevos(subPedidos)
+
+  useEffect(() => {
+    if (!esChef) {
+      return
+    }
+    dispatch(fetchSubpedidosChef({ token, userId })).then((resultado) => {
+      // Si hay más que la última vez que se contó, se avisa (al ingresar, la última vez es 0).
+      if (resultado.payload !== undefined && contarNuevos(resultado.payload) > nuevos) {
+        onAviso(`Tenés ${contarNuevos(resultado.payload)} pedidos por atender`)
+      }
+    })
+    // nuevos y onAviso quedan afuera de las dependencias: se leen al momento de pedir y no deben volver a disparar el GET.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch, esChef, token, userId, pathname])
+
+  // Enlaces comunes más los del rol (sin sesión, solo los comunes); "Pedidos recibidos" lleva el globito.
+  const enlacesDelRol = sesion === null ? [] : ENLACES_POR_ROL[sesion.role]
+  const enlaces = [...ENLACES, ...enlacesDelRol].map((enlace) =>
+    enlace.ruta === '/pedidos-recibidos' ? { ...enlace, contador: nuevos } : enlace,
+  )
 
   // Menú móvil abierto o cerrado (UI propia del Header).
   const [menuOpen, setMenuOpen] = useState(false)
@@ -56,6 +88,7 @@ function Header({ cartCount, onLogout }) {
           {enlaces.map((enlace) => (
             <NavLink key={enlace.ruta} to={enlace.ruta} className="nav-link">
               {enlace.texto}
+              {enlace.contador !== undefined && <Insignia cantidad={enlace.contador} label="pedidos por atender" />}
             </NavLink>
           ))}
         </nav>

@@ -1,7 +1,8 @@
 // Menú desplegable del Header en pantallas chicas: enlaces de navegación y de la cuenta. No lee el store: todo viene por props.
 import { NavLink } from 'react-router-dom'
+import Insignia from './Insignia'
 
-// Props: enlaces ({ texto, ruta }[], ya con los del rol); sesion (usuario o null); onCerrar (cierra el menú);
+// Props: enlaces ({ texto, ruta, contador opcional }[], ya con los del rol); sesion (usuario o null); onCerrar (cierra el menú);
 // onLogout (App cierra la sesión).
 function MenuMovil({ enlaces, sesion, onCerrar, onLogout }) {
   return (
@@ -10,6 +11,7 @@ function MenuMovil({ enlaces, sesion, onCerrar, onLogout }) {
         {enlaces.map((enlace) => (
           <NavLink key={enlace.ruta} to={enlace.ruta} className="nav-link block !py-3" onClick={onCerrar}>
             {enlace.texto}
+            {enlace.contador !== undefined && <Insignia cantidad={enlace.contador} label="pedidos por atender" />}
           </NavLink>
         ))}
       </nav>

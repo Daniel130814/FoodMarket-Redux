@@ -240,7 +240,7 @@ function App() {
     return (
       <>
         <a className="skip-link" href="#contenido">Ir al contenido</a>
-        <Header cartCount={cantidadTotal} onLogout={salir} />
+        <Header cartCount={cantidadTotal} onLogout={salir} onAviso={avisar} />
         <main id="contenido" className="mx-auto max-w-shell px-5 py-10 lg:px-12">
           <Routes>
             {/* Públicas */}

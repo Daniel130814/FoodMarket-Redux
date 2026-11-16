@@ -27,8 +27,7 @@ const subpedidosSlice = createSlice({
     builder
       .addCase(fetchSubpedidosChef.pending, (state) => {
         state.loading = true;
-        state.error = null;
-        state.items = []; // evita mostrar los datos de otro chef mientras llegan los nuevos
+        state.error = null; // items se conserva: el globito del Header no parpadea en cada refresco
       })
       .addCase(fetchSubpedidosChef.fulfilled, (state, action) => {
         state.loading = false;
