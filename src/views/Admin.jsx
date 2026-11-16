@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { useSelector } from 'react-redux'
 import Tabs from '../components/comunes/Tabs'
 import CategoriasPanel from '../components/admin/CategoriasPanel'
+import PagosPanel from '../components/admin/PagosPanel'
 import Dialog from '../components/comunes/Dialog'
 import LoadingState from '../components/comunes/LoadingState'
 import ErrorState from '../components/comunes/ErrorState'
@@ -18,21 +19,6 @@ const mensajeDe = (fallo) =>
   fallo.status === undefined
     ? 'No pudimos conectar con el servidor. Revisá que el backend esté funcionando e intentá de nuevo.'
     : fallo.message
-
-// Estado del pago -> texto y color del badge.
-const ETIQUETAS_PAGO = {
-  PENDIENTE: { texto: 'Pendiente', clase: 'badge-sand' },
-  APROBADO: { texto: 'Aprobado', clase: 'badge-leaf' },
-  RECHAZADO: { texto: 'Rechazado', clase: 'badge-terra' },
-  REEMBOLSADO: { texto: 'Reembolsado', clase: 'badge-mute' },
-}
-
-const ETIQUETAS_MEDIO = {
-  TARJETA_CREDITO: 'Tarjeta de crédito',
-  TARJETA_DEBITO: 'Tarjeta de débito',
-  TRANSFERENCIA: 'Transferencia',
-  EFECTIVO: 'Efectivo',
-}
 
 // Textos del diálogo de confirmación; la clave es el estado nuevo del pago.
 const TEXTOS_ACCION = {
@@ -103,8 +89,6 @@ const validarEdicion = (datos) => ({
   ...(datos.apellido.trim() === '' && { apellido: 'Escribí el apellido.' }),
   ...(!/\S+@\S+\.\S+/.test(datos.email.trim()) && { email: 'Escribí un correo válido.' }),
 })
-
-const formatear = (monto) => `$${monto.toLocaleString('es-AR')}`
 
 // Props: onSesionVencida (cierra la sesión ante un 401), onAviso (muestra un Toast). El token sale del store.
 function Admin({ onSesionVencida, onAviso }) {
@@ -594,17 +578,6 @@ function Admin({ onSesionVencida, onAviso }) {
     { id: 'categorias', label: 'Categorías', count: categorias.length },
   ]
 
-  // Transiciones válidas: PENDIENTE -> APROBADO o RECHAZADO; APROBADO -> REEMBOLSADO; el resto no tiene acciones.
-  const accionesDe = (pago) => {
-    if (pago.estado === 'PENDIENTE') {
-      return ['APROBADO', 'RECHAZADO']
-    }
-    if (pago.estado === 'APROBADO') {
-      return ['REEMBOLSADO']
-    }
-    return []
-  }
-
   return (
     <>
       <h1 className="font-display text-display-lg-mobile text-primary lg:text-[52px] lg:leading-[56px]">Administración</h1>
@@ -616,41 +589,11 @@ function Admin({ onSesionVencida, onAviso }) {
         <Tabs tabs={pestanas} activeId={pestana} onChange={setPestana} label="Administración" />
 
         {pestana === 'pagos' && (
-        <div role="tabpanel" className="mt-8 space-y-4">
-          {ordenados.length === 0 && (
-            <p className="text-body-md text-on-surface-variant">
-              No hay pagos todavía. Cuando un cliente pague un pedido, lo vas a ver acá para aprobarlo.
-            </p>
-          )}
-          {ordenados.map((pago) => (
-            <article
-              key={pago.id}
-              className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-surface-container-lowest p-5 shadow-ambient"
-            >
-              <div className="min-w-0 flex-1 basis-[220px]">
-                <h2 className="font-display text-headline-sm text-primary">Pago n.º {pago.id} · Pedido n.º {pago.pedidoId}</h2>
-                <p className="text-body-sm text-on-surface-variant">
-                  {ETIQUETAS_MEDIO[pago.medioPago]} ·{' '}
-                  {new Date(pago.fechaCreacion).toLocaleString('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                </p>
-              </div>
-              <p className="font-display text-price-md tabular text-primary">{formatear(pago.monto)}</p>
-              <span className={`badge ${ETIQUETAS_PAGO[pago.estado].clase}`}>{ETIQUETAS_PAGO[pago.estado].texto}</span>
-              <div className="flex gap-2">
-                {accionesDe(pago).map((estado) => (
-                  <button
-                    key={estado}
-                    type="button"
-                    className={estado === 'APROBADO' ? 'btn btn-primary btn-sm' : 'btn btn-quiet btn-sm text-error'}
-                    onClick={() => setAccion({ pagoId: pago.id, estado })}
-                  >
-                    {TEXTOS_ACCION[estado].boton}
-                  </button>
-                ))}
-              </div>
-            </article>
-          ))}
-        </div>
+          <PagosPanel
+            pagos={ordenados}
+            textosAccion={TEXTOS_ACCION}
+            onAccion={(pagoId, estado) => setAccion({ pagoId, estado })}
+          />
         )}
 
         {pestana === 'usuarios' && (
