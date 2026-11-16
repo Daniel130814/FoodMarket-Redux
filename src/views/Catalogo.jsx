@@ -10,25 +10,12 @@ import EmptyState from '../components/comunes/EmptyState'
 import Button from '../components/comunes/Button'
 import ContenidoAsync from '../components/comunes/ContenidoAsync'
 import { fetchPlatos } from '../components/Redux/platosSlice'
-
-// URL base del backend (viene de .env).
-const API_URL = import.meta.env.VITE_API_URL
+import { fetchCategorias } from '../components/Redux/categoriasSlice'
 
 const PLATOS_POR_PAGINA = 6
 
 // Filtros vacíos (categoriaId null = todas). Los precios van como texto, como vienen de los inputs.
 const FILTROS_INICIALES = { nombre: '', categoriaId: null, precioMin: '', precioMax: '' }
-
-// Devuelve `data` o lanza un Error con message y status (fetch no manda los errores HTTP al .catch).
-const leerRespuesta = (response) =>
-  response.json().then((cuerpo) => {
-    if (!response.ok) {
-      const fallo = new Error(cuerpo.message)
-      fallo.status = response.status
-      throw fallo
-    }
-    return cuerpo.data
-  })
 
 // Ordena una copia de los platos (sort modifica el array y el estado no se toca): la API no ordena.
 const ordenarPlatos = (platos, orden) => {
@@ -58,13 +45,10 @@ const validarPrecios = (filtros) => {
 
 // Props: onAdd (agregar a la cesta de App; solo se reenvía a cada PlatoCard).
 function Catalogo({ onAdd }) {
-  // Los platos vienen del store (platosSlice); las categorías todavía se piden acá.
+  // Los platos y las categorías vienen del store. Si las categorías fallan, solo se avisa debajo de los chips.
   const dispatch = useDispatch()
   const { items: platos, loading: cargando, error } = useSelector((state) => state.platos)
-  const [categorias, setCategorias] = useState([])
-
-  // Si las categorías fallan, solo se avisa debajo de los chips: la lista igual se puede usar.
-  const [errorCategorias, setErrorCategorias] = useState(false)
+  const { items: categorias, error: errorCategorias } = useSelector((state) => state.categorias)
 
   // Si llegamos desde Inicio, el nombre y la categoría vienen en el state de la navegación (valores iniciales: no disparan un GET de más).
   const location = useLocation()
@@ -90,11 +74,8 @@ function Catalogo({ onAdd }) {
 
   // Categorías: se piden una sola vez, al abrir. Ruta pública: sin token.
   useEffect(() => {
-    fetch(`${API_URL}/categories`)
-      .then(leerRespuesta)
-      .then((data) => setCategorias(data ?? []))
-      .catch(() => setErrorCategorias(true))
-  }, [])
+    dispatch(fetchCategorias())
+  }, [dispatch])
 
   // Platos: se piden al abrir y cada vez que cambia un filtro. Filtra el backend, con query params.
   useEffect(() => {

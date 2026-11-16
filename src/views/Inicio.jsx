@@ -11,6 +11,7 @@ import Hero3D from '../components/layout/Hero3D'
 import FondoMesa from '../components/layout/FondoMesa'
 import ContenidoAsync from '../components/comunes/ContenidoAsync'
 import { fetchPlatos, fetchPlatoRecomendado } from '../components/Redux/platosSlice'
+import { fetchCategorias } from '../components/Redux/categoriasSlice'
 
 // URL base del backend (viene de .env).
 const API_URL = import.meta.env.VITE_API_URL
@@ -35,7 +36,8 @@ function Inicio({ onAdd }) {
   const dispatch = useDispatch()
   // Platos y plato recomendado vienen del store (platosSlice); si no hay recomendado, la portada usa el primer plato publicado.
   const { items: platos, recomendado, loading: cargando, error } = useSelector((state) => state.platos)
-  const [categorias, setCategorias] = useState([])
+  // Si las categorías fallan, solo se avisa debajo de los chips: el resto de la portada se puede usar.
+  const { items: categorias, error: errorCategorias } = useSelector((state) => state.categorias)
 
   // Texto del buscador de la portada: se manda al catálogo al enviar.
   const [busqueda, setBusqueda] = useState('')
@@ -45,8 +47,6 @@ function Inicio({ onAdd }) {
   const [cargandoChefs, setCargandoChefs] = useState(true)
   const [errorChefs, setErrorChefs] = useState(false)
 
-  // Si las categorías fallan, solo se avisa debajo de los chips: el resto de la portada se puede usar.
-  const [errorCategorias, setErrorCategorias] = useState(false)
 
   // Al abrir: pide los platos (a Redux) y las categorías, cada uno en su efecto. Rutas públicas: sin token.
   useEffect(() => {
@@ -54,11 +54,8 @@ function Inicio({ onAdd }) {
   }, [dispatch])
 
   useEffect(() => {
-    fetch(`${API_URL}/categories`)
-      .then(leerRespuesta)
-      .then((data) => setCategorias(data ?? []))
-      .catch(() => setErrorCategorias(true))
-  }, [])
+    dispatch(fetchCategorias())
+  }, [dispatch])
 
   // GET /chef-profiles (público, sin token).
   useEffect(() => {
