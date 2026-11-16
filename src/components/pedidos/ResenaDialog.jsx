@@ -1,9 +1,65 @@
 // Diálogo para reseñar un plato de un pedido entregado (views/MisPedidos). No hace fetch: todo viene por props.
+// Antes de confirmar revisa el comentario: si tiene lenguaje ofensivo, no llama a onConfirm y muestra el error.
+import { useState } from 'react'
 import Dialog from '../comunes/Dialog'
+
+// Lista inicial (se revisa y completa a mano). Va sin tildes y sin letras repetidas, como queda el texto normalizado.
+const PALABRAS_PROHIBIDAS = [
+  'pelotudo', 'pelotuda', 'boludo', 'boluda', 'forro', 'forra', 'puta', 'puto', 'mierda', 'carajo',
+  'idiota', 'imbecil', 'estupido', 'estupida', 'tarado', 'tarada', 'trolo', 'mogolico', 'cagon',
+  'culiado', 'conchudo', 'conchuda', 'pendejo', 'pendeja', 'cabron', 'verga', 'malparido', 'hdp',
+]
+
+// Deja el texto en una forma comparable: minúsculas, sin tildes, símbolos por letras (p3l0tud0 -> pelotudo),
+// letras sueltas unidas (p.e.l.o -> pelo) y letras repetidas colapsadas (pelotuuudo -> pelotudo).
+const normalizar = (texto) =>
+  texto
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/0/g, 'o')
+    .replace(/1/g, 'i')
+    .replace(/3/g, 'e')
+    .replace(/4/g, 'a')
+    .replace(/5/g, 's')
+    .replace(/@/g, 'a')
+    .replace(/\$/g, 's')
+    .replace(/[^a-z]/g, ' ')
+    .replace(/(?<=(?:^|\s)[a-z]) (?=[a-z](?:\s|$))/g, '')
+    .replace(/(.)\1+/g, '$1')
+
+// Compara palabra entera (no subcadena), así "computadora" o "putrefacto" no se bloquean por parecerse.
+const tieneLenguajeOfensivo = (texto) => {
+  const prohibidas = PALABRAS_PROHIBIDAS.map(normalizar)
+  return normalizar(texto)
+    .split(' ')
+    .some((palabra) => prohibidas.includes(palabra))
+}
 
 // Props: plato ({ platoId, platoNombre } o null = cerrado); calificacion y comentario (valores de los campos);
 // onCalificacionChange y onComentarioChange (event); onConfirm; onCancel.
 function ResenaDialog({ plato, calificacion, comentario, onCalificacionChange, onComentarioChange, onConfirm, onCancel }) {
+  // Error junto al campo del comentario (null = sin error).
+  const [errorComentario, setErrorComentario] = useState(null)
+
+  const confirmar = () => {
+    if (tieneLenguajeOfensivo(comentario)) {
+      setErrorComentario('Tu comentario contiene lenguaje no permitido.')
+      return
+    }
+    onConfirm()
+  }
+
+  const cerrar = () => {
+    setErrorComentario(null)
+    onCancel()
+  }
+
+  const cambiarComentario = (event) => {
+    setErrorComentario(null)
+    onComentarioChange(event)
+  }
+
   return (
     // Cerrado, el título va vacío (Dialog no dibuja nada con open en false)
     <Dialog
@@ -13,8 +69,8 @@ function ResenaDialog({ plato, calificacion, comentario, onCalificacionChange, o
       confirmLabel="Publicar reseña"
       confirmVariant="primary"
       cancelLabel="Volver"
-      onConfirm={onConfirm}
-      onCancel={onCancel}
+      onConfirm={confirmar}
+      onCancel={cerrar}
     >
       <label className="label mt-5" htmlFor="calificacion">Calificación</label>
       <select id="calificacion" className="field" value={calificacion} onChange={onCalificacionChange}>
@@ -25,7 +81,19 @@ function ResenaDialog({ plato, calificacion, comentario, onCalificacionChange, o
         <option value="1">1 · Malo</option>
       </select>
       <label className="label mt-4" htmlFor="comentario">Comentario (opcional)</label>
-      <textarea id="comentario" className="field" value={comentario} onChange={onComentarioChange} />
+      <textarea
+        id="comentario"
+        className="field"
+        value={comentario}
+        onChange={cambiarComentario}
+        aria-invalid={errorComentario ? 'true' : 'false'}
+      />
+      {errorComentario && (
+        <p className="hint hint--error">
+          <span className="material-symbols-outlined text-[18px]" aria-hidden="true">error</span>
+          <span>{errorComentario}</span>
+        </p>
+      )}
     </Dialog>
   )
 }
