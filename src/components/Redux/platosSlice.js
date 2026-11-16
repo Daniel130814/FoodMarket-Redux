@@ -1,4 +1,4 @@
-// Platos en Redux: la lista del catálogo (GET /platos con filtros) y el plato abierto en el detalle (GET /platos/{id}).
+// Platos en Redux: la lista (GET /platos con filtros), el plato del detalle (GET /platos/{id}) y el recomendado de la portada.
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
 
@@ -23,9 +23,29 @@ export const fetchPlatoById = createAsyncThunk(
   },
 );
 
+// Plato destacado de la portada: el filtro `nombre` busca por coincidencia parcial; se queda con uno visible.
+export const fetchPlatoRecomendado = createAsyncThunk(
+  "platos/fetchPlatoRecomendado",
+  async (nombre) => {
+    const { data: cuerpo } = await axios.get(`${API_URL}/platos`, {
+      params: { nombre },
+    });
+    const visible = (cuerpo.data ?? []).find(
+      (plato) => plato.estado === "PUBLICADO" || plato.estado === "AGOTADO",
+    );
+    return visible ?? null;
+  },
+);
+
 const platosSlice = createSlice({
   name: "platos",
-  initialState: { items: [], platoActual: null, loading: false, error: null },
+  initialState: {
+    items: [],
+    platoActual: null,
+    recomendado: null,
+    loading: false,
+    error: null,
+  },
   reducers: {},
   extraReducers: (builder) => {
     builder
@@ -53,6 +73,10 @@ const platosSlice = createSlice({
       .addCase(fetchPlatoById.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message;
+      })
+      // Solo fulfilled: si falla la portada cae al primer plato, sin tocar loading ni error de la lista.
+      .addCase(fetchPlatoRecomendado.fulfilled, (state, action) => {
+        state.recomendado = action.payload;
       });
   },
 });

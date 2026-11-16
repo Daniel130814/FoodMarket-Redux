@@ -1,5 +1,6 @@
 // Inicio (/): portada con buscador y categorías, platos de hoy y chefs (GET /platos, /categories y /chef-profiles).
 import { useEffect, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import { Link, useNavigate } from 'react-router-dom'
 import PlatoCard from '../components/platos/PlatoCard'
 import SearchBar from '../components/platos/SearchBar'
@@ -9,6 +10,7 @@ import LogoCloche from '../components/layout/LogoCloche'
 import Hero3D from '../components/layout/Hero3D'
 import FondoMesa from '../components/layout/FondoMesa'
 import ContenidoAsync from '../components/comunes/ContenidoAsync'
+import { fetchPlatos, fetchPlatoRecomendado } from '../components/Redux/platosSlice'
 
 // URL base del backend (viene de .env).
 const API_URL = import.meta.env.VITE_API_URL
@@ -30,11 +32,10 @@ const leerRespuesta = (response) =>
 // Props: onAdd (agregar a la cesta de App; solo se reenvía a cada PlatoCard).
 function Inicio({ onAdd }) {
   const navigate = useNavigate()
-  const [platos, setPlatos] = useState([])
+  const dispatch = useDispatch()
+  // Platos y plato recomendado vienen del store (platosSlice); si no hay recomendado, la portada usa el primer plato publicado.
+  const { items: platos, recomendado, loading: cargando, error } = useSelector((state) => state.platos)
   const [categorias, setCategorias] = useState([])
-
-  // Plato recomendado (undefined hasta que llega o si no hay); si falta, la portada usa el primer plato publicado.
-  const [recomendado, setRecomendado] = useState(undefined)
 
   // Texto del buscador de la portada: se manda al catálogo al enviar.
   const [busqueda, setBusqueda] = useState('')
@@ -45,35 +46,12 @@ function Inicio({ onAdd }) {
   const [errorChefs, setErrorChefs] = useState(false)
 
   // Si las categorías fallan, solo se avisa debajo de los chips: el resto de la portada se puede usar.
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState(null)
   const [errorCategorias, setErrorCategorias] = useState(false)
 
-  // Al abrir: pide los platos y las categorías, cada uno en su efecto. Rutas públicas: sin token.
+  // Al abrir: pide los platos (a Redux) y las categorías, cada uno en su efecto. Rutas públicas: sin token.
   useEffect(() => {
-    // Se cancela si salimos de la vista antes de que responda.
-    const controlador = new AbortController()
-
-    fetch(`${API_URL}/platos`, { signal: controlador.signal })
-      .then(leerRespuesta)
-      .then((data) => {
-        setPlatos(data ?? [])
-        setCargando(false)
-      })
-      .catch((fallo) => {
-        if (fallo.name === 'AbortError') {
-          return
-        }
-        setError(
-          fallo.status === undefined
-            ? 'No pudimos conectar con el servidor. Revisá que el backend esté funcionando e intentá de nuevo.'
-            : fallo.message
-        )
-        setCargando(false)
-      })
-
-    return () => controlador.abort()
-  }, [])
+    dispatch(fetchPlatos())
+  }, [dispatch])
 
   useEffect(() => {
     fetch(`${API_URL}/categories`)
@@ -91,13 +69,10 @@ function Inicio({ onAdd }) {
       .finally(() => setCargandoChefs(false))
   }, [])
 
-  // GET del plato recomendado (público, sin token). Si falla no se avisa: cae al respaldo.
+  // Plato recomendado de la portada (público, sin token).
   useEffect(() => {
-    fetch(`${API_URL}/platos?nombre=${encodeURIComponent(NOMBRE_RECOMENDADO)}`)
-      .then(leerRespuesta)
-      .then((data) => setRecomendado((data ?? []).find((plato) => plato.estado === 'PUBLICADO' || plato.estado === 'AGOTADO')))
-      .catch(() => setRecomendado(undefined))
-  }, [])
+    dispatch(fetchPlatoRecomendado(NOMBRE_RECOMENDADO))
+  }, [dispatch])
 
   const manejarBusqueda = (event) => {
     setBusqueda(event.target.value)
