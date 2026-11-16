@@ -31,12 +31,7 @@ function PlatoCard({ dish, onAdd }) {
         )}
       </Link>
       <div className="mt-4 flex flex-1 flex-col gap-2">
-        {/* TODO(backend): chefNombre en los platos; mientras no venga, no se dibuja nada */}
-        {chefNombre !== undefined && (
-          <div className="flex items-center justify-between gap-3">
-            <span className="truncate text-label-md text-on-surface-variant">{chefNombre}</span>
-          </div>
-        )}
+        <span className="truncate text-label-md text-on-surface-variant">{chefNombre}</span>
         <h3 className="dish__title font-display text-title-md text-primary">
           <Link to={`/plato/${id}`}>{nombre}</Link>
         </h3>

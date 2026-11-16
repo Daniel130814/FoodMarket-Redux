@@ -155,6 +155,7 @@ function DetallePlato({ onAdd, onSesionVencida, onAviso }) {
       <div>
         {agotado && <span className="badge badge-dark mb-3">Agotado</span>}
         <h1 className="font-display text-headline-lg text-primary">{plato.nombre}</h1>
+        <p className="mt-1 text-body-md text-on-surface-variant">Cocina {plato.chefNombre}</p>
         {tieneResenas && (
           <p className="mt-2 text-label-md text-primary">
             ★ {promedioTexto}{' '}

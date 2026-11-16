@@ -60,6 +60,7 @@ function Hero3D({ plato, onAdd }) {
                 <Link to={`/plato/${plato.id}`} className="mt-1 block truncate font-display text-[18px] leading-6 text-primary">
                   {plato.nombre}
                 </Link>
+                <p className="truncate text-label-md text-on-surface-variant">{plato.chefNombre}</p>
                 <p className="mt-1 flex flex-wrap items-baseline gap-x-2 text-body-sm text-on-surface-variant">
                   <span className="tabular font-display text-[16px] text-primary">{formatear(plato.precioConDescuento)}</span>
                   {agotado ? 'Agotado por hoy' : `Quedan ${plato.stockDisponible} hoy`}
