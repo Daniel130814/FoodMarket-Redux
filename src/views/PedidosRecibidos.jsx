@@ -53,7 +53,6 @@ function PedidosRecibidos({ onSesionVencida, onAviso }) {
   // Token y userId del store (ruta privada).
   const token = useSelector((state) => state.auth.token)
   const userId = useSelector((state) => state.auth.user?.userId)
-  // TODO(backend): el subpedido no trae el número de pedido, la fecha ni el cliente; se muestra solo su id.
   const [subPedidos, setSubPedidos] = useState([])
 
   const [cargando, setCargando] = useState(true)
@@ -105,7 +104,7 @@ function PedidosRecibidos({ onSesionVencida, onAviso }) {
       .then(leerRespuesta)
       .then((avanzado) => {
         setSubPedidos((actuales) => actuales.map((s) => (s.id === avanzado.id ? avanzado : s)))
-        onAviso(`El subpedido n.º ${avanzado.id} ahora está: ${ETIQUETAS_ESTADO[avanzado.estado]}`)
+        onAviso(`El pedido n.º ${avanzado.pedidoId} ahora está: ${ETIQUETAS_ESTADO[avanzado.estado]}`)
       })
       .catch((fallo) => {
         if (fallo.status === 401) {
@@ -116,8 +115,8 @@ function PedidosRecibidos({ onSesionVencida, onAviso }) {
       })
   }
 
-  // De más nuevo a más viejo (el id crece con el tiempo; se ordena una copia) y separados en curso y anteriores.
-  const ordenados = [...subPedidos].sort((a, b) => b.id - a.id)
+  // De más nuevo a más viejo por la fecha del pedido (empata el id; se ordena una copia) y separados en curso y anteriores.
+  const ordenados = [...subPedidos].sort((a, b) => b.fechaCreacion.localeCompare(a.fechaCreacion) || b.id - a.id)
   const enCurso = ordenados.filter((s) => s.estado !== 'ENTREGADO' && s.estado !== 'CANCELADO')
   const anteriores = ordenados.filter((s) => s.estado === 'ENTREGADO' || s.estado === 'CANCELADO')
   const visibles = pestana === 'curso' ? enCurso : anteriores
@@ -159,7 +158,7 @@ function PedidosRecibidos({ onSesionVencida, onAviso }) {
       {/* Diálogo: avanzar no se puede deshacer. Cerrado, los textos van vacíos (Dialog no dibuja nada con open en false) */}
       <Dialog
         open={subPedidoAAvanzar !== null}
-        title={subPedidoAAvanzar === null ? '' : `${ACCIONES[subPedidoAAvanzar.estado].boton}: subpedido n.º ${subPedidoAAvanzar.id}`}
+        title={subPedidoAAvanzar === null ? '' : `${ACCIONES[subPedidoAAvanzar.estado].boton}: pedido n.º ${subPedidoAAvanzar.pedidoId}`}
         message="El cliente va a ver el nuevo estado en su pedido. No se puede volver atrás."
         confirmLabel={subPedidoAAvanzar === null ? '' : ACCIONES[subPedidoAAvanzar.estado].boton}
         confirmVariant="primary"

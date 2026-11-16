@@ -8,12 +8,23 @@ function SubPedidoCard({ subPedido, steps, accion, onAdvance }) {
 
   const cantidadTotal = subPedido.detalles.reduce((acumulado, detalle) => acumulado + detalle.cantidad, 0)
 
+  // Fecha del pedido (la API manda la del pedido, no la del subpedido) con la hora: al chef le sirve para ordenar la cocina.
+  const fecha = new Date(subPedido.fechaCreacion).toLocaleString('es-AR', {
+    day: 'numeric',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+
   return (
     <article className="rounded-xl bg-surface-container-lowest p-5 shadow-ambient sm:p-7" aria-labelledby={`subpedido-${subPedido.id}`}>
       <header className="flex flex-wrap items-start justify-between gap-4">
-        <h3 id={`subpedido-${subPedido.id}`} className="min-w-0 flex-1 basis-[220px] font-display text-headline-sm text-primary">
-          Subpedido n.º {subPedido.id}
-        </h3>
+        <div className="min-w-0 flex-1 basis-[220px]">
+          <h3 id={`subpedido-${subPedido.id}`} className="font-display text-headline-sm text-primary">
+            Pedido n.º {subPedido.pedidoId}
+          </h3>
+          <p className="text-body-sm text-on-surface-variant">{fecha} · {subPedido.clienteNombre}</p>
+        </div>
         <div className="flex-none text-right">
           <p className="font-display text-price-md tabular text-primary">{formatear(subPedido.subtotal)}</p>
           <p className="text-body-sm text-on-surface-variant">{cantidadTotal} {cantidadTotal === 1 ? 'plato' : 'platos'}</p>
