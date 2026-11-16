@@ -1,5 +1,6 @@
 // Catálogo (/catalogo): platos y categorías del backend. Filtra por query params; ordena y pagina acá (la API no lo hace).
 import { useEffect, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import { useLocation } from 'react-router-dom'
 import PlatoCard from '../components/platos/PlatoCard'
 import SearchBar from '../components/platos/SearchBar'
@@ -8,6 +9,7 @@ import Pagination from '../components/comunes/Pagination'
 import EmptyState from '../components/comunes/EmptyState'
 import Button from '../components/comunes/Button'
 import ContenidoAsync from '../components/comunes/ContenidoAsync'
+import { fetchPlatos } from '../components/Redux/platosSlice'
 
 // URL base del backend (viene de .env).
 const API_URL = import.meta.env.VITE_API_URL
@@ -56,12 +58,12 @@ const validarPrecios = (filtros) => {
 
 // Props: onAdd (agregar a la cesta de App; solo se reenvía a cada PlatoCard).
 function Catalogo({ onAdd }) {
-  const [platos, setPlatos] = useState([])
+  // Los platos vienen del store (platosSlice); las categorías todavía se piden acá.
+  const dispatch = useDispatch()
+  const { items: platos, loading: cargando, error } = useSelector((state) => state.platos)
   const [categorias, setCategorias] = useState([])
 
   // Si las categorías fallan, solo se avisa debajo de los chips: la lista igual se puede usar.
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState(null)
   const [errorCategorias, setErrorCategorias] = useState(false)
 
   // Si llegamos desde Inicio, el nombre y la categoría vienen en el state de la navegación (valores iniciales: no disparan un GET de más).
@@ -96,36 +98,15 @@ function Catalogo({ onAdd }) {
 
   // Platos: se piden al abrir y cada vez que cambia un filtro. Filtra el backend, con query params.
   useEffect(() => {
-    // Si el usuario sigue escribiendo se cancela el pedido anterior, para que no llegue tarde y pise al nuevo.
-    const controlador = new AbortController()
+    // Solo viajan los filtros con valor (un precio vacío le daría un 400 al backend).
+    const filtrosApi = {}
+    if (nombre !== '') filtrosApi.nombre = nombre
+    if (categoriaId !== null) filtrosApi.categoriaId = categoriaId
+    if (precioMin !== '') filtrosApi.precioMin = precioMin
+    if (precioMax !== '') filtrosApi.precioMax = precioMax
 
-    const parametros = new URLSearchParams()
-    if (nombre !== '') parametros.set('nombre', nombre)
-    if (categoriaId !== null) parametros.set('categoriaId', categoriaId)
-    if (precioMin !== '') parametros.set('precioMin', precioMin)
-    if (precioMax !== '') parametros.set('precioMax', precioMax)
-
-    fetch(`${API_URL}/platos?${parametros.toString()}`, { signal: controlador.signal })
-      .then(leerRespuesta)
-      .then((data) => {
-        setPlatos(data ?? [])
-        setError(null)
-        setCargando(false)
-      })
-      .catch((fallo) => {
-        if (fallo.name === 'AbortError') {
-          return
-        }
-        setError(
-          fallo.status === undefined
-            ? 'No pudimos conectar con el servidor. Revisá que el backend esté funcionando e intentá de nuevo.'
-            : fallo.message
-        )
-        setCargando(false)
-      })
-
-    return () => controlador.abort()
-  }, [nombre, categoriaId, precioMin, precioMax])
+    dispatch(fetchPlatos(filtrosApi))
+  }, [dispatch, nombre, categoriaId, precioMin, precioMax])
 
   // Handler de los inputs de texto y precio; al cambiar un filtro vuelve a la página 1.
   const handleFiltroChange = (event) => {
