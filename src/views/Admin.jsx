@@ -6,6 +6,7 @@ import { useSelector } from 'react-redux'
 import Tabs from '../components/comunes/Tabs'
 import CategoriasPanel from '../components/admin/CategoriasPanel'
 import PagosPanel from '../components/admin/PagosPanel'
+import UsuariosPanel from '../components/admin/UsuariosPanel'
 import Dialog from '../components/comunes/Dialog'
 import LoadingState from '../components/comunes/LoadingState'
 import ErrorState from '../components/comunes/ErrorState'
@@ -597,58 +598,19 @@ function Admin({ onSesionVencida, onAviso }) {
         )}
 
         {pestana === 'usuarios' && (
-          <div role="tabpanel" className="mt-8 space-y-4">
-            {mostrarForm ? (
-              <form
-                className="space-y-5 rounded-xl bg-surface-container-lowest p-5 shadow-ambient sm:p-7"
-                onSubmit={crearUsuario}
-                noValidate
-              >
-                <h2 className="font-display text-headline-sm text-primary">Nueva cuenta</h2>
-                {errorCrear !== null && <Alert title="No pudimos crear la cuenta" messages={[errorCrear]} />}
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <FormField label="Nombre" name="nombre" value={form.nombre} onChange={handleFormChange} error={erroresForm.nombre} />
-                  <FormField label="Apellido" name="apellido" value={form.apellido} onChange={handleFormChange} error={erroresForm.apellido} />
-                  <FormField label="Usuario" name="username" value={form.username} onChange={handleFormChange} error={erroresForm.username} autoComplete="off" />
-                  <FormField label="Correo electrónico" name="email" type="email" value={form.email} onChange={handleFormChange} error={erroresForm.email} autoComplete="off" />
-                  <FormField label="Contraseña" name="password" type="password" value={form.password} onChange={handleFormChange} error={erroresForm.password} autoComplete="new-password" />
-                  <div>
-                    <label className="label" htmlFor="role">Rol</label>
-                    <select id="role" name="role" className="field" value={form.role} onChange={handleFormChange}>
-                      <option value="CLIENTE">Cliente</option>
-                      <option value="CHEF">Chef</option>
-                      <option value="ADMIN">Administrador</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-3">
-                  <button type="submit" className="btn btn-primary">Crear cuenta</button>
-                  <button type="button" className="btn btn-quiet" onClick={cerrarForm}>Cancelar</button>
-                </div>
-              </form>
-            ) : (
-              <button type="button" className="btn btn-secondary" onClick={() => setMostrarForm(true)}>
-                Crear usuario
-              </button>
-            )}
-
-            {/* El rol de un usuario existente se cambia desde "Ver y editar" */}
-            {usuarios.map((usuario) => (
-              <article
-                key={usuario.id}
-                className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-surface-container-lowest p-5 shadow-ambient"
-              >
-                <div className="min-w-0 flex-1 basis-[220px]">
-                  <h2 className="font-display text-headline-sm text-primary">{usuario.nombre} {usuario.apellido}</h2>
-                  <p className="text-body-sm text-on-surface-variant">@{usuario.username} · {usuario.email}</p>
-                </div>
-                <span className={`badge ${ETIQUETAS_ROL[usuario.role].clase}`}>{ETIQUETAS_ROL[usuario.role].texto}</span>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => abrirDetalle(usuario.id)}>
-                  Ver y editar
-                </button>
-              </article>
-            ))}
-          </div>
+          <UsuariosPanel
+            usuarios={usuarios}
+            etiquetasRol={ETIQUETAS_ROL}
+            mostrarForm={mostrarForm}
+            form={form}
+            errores={erroresForm}
+            errorCrear={errorCrear}
+            onAbrirForm={() => setMostrarForm(true)}
+            onCerrarForm={cerrarForm}
+            onChange={handleFormChange}
+            onCrear={crearUsuario}
+            onVerDetalle={abrirDetalle}
+          />
         )}
 
         {pestana === 'categorias' && (
