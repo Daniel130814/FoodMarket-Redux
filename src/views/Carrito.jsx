@@ -1,23 +1,12 @@
 // Cesta (/cesta, CLIENTE): muestra la cesta que le pasa App y sigue al checkout.
 import { useEffect, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import { Link, useNavigate } from 'react-router-dom'
 import CartItem from '../components/cesta/CartItem'
 import OrderSummary from '../components/cesta/OrderSummary'
 import EmptyState from '../components/comunes/EmptyState'
 import Dialog from '../components/comunes/Dialog'
-
-const API_URL = import.meta.env.VITE_API_URL
-
-// Devuelve `data` o lanza un Error con message y status (fetch no manda los errores HTTP al .catch).
-const leerRespuesta = (response) =>
-  response.json().then((cuerpo) => {
-    if (!response.ok) {
-      const fallo = new Error(cuerpo.message)
-      fallo.status = response.status
-      throw fallo
-    }
-    return cuerpo.data
-  })
+import { fetchPlatos } from '../components/Redux/platosSlice'
 
 // Props (de App): carrito, cartCount (unidades), onQuantityChange (itemId, cantidad), onRemove (itemId), onClear (vacía la cesta).
 function Carrito({ carrito, cartCount, onQuantityChange, onRemove, onClear }) {
@@ -26,16 +15,15 @@ function Carrito({ carrito, cartCount, onQuantityChange, onRemove, onClear }) {
   // Diálogo de "Vaciar cesta" abierto o cerrado.
   const [confirmandoVaciar, setConfirmandoVaciar] = useState(false)
 
-  // Primera foto de cada plato por id: los ítems de la API no traen imagen, así que se piden al catálogo (público, sin token).
-  const [fotos, setFotos] = useState({})
+  // Los ítems de la API no traen imagen: se piden los platos al catálogo (público, sin token) y se usa la primera foto de cada uno.
+  const dispatch = useDispatch()
+  const { items: platos } = useSelector((state) => state.platos)
+  const fotos = Object.fromEntries(platos.map((plato) => [plato.id, plato.imagenesUrls[0]]))
 
   // Al abrir: GET /platos. Si falla se queda el ícono de siempre, porque la foto es solo decorativa.
   useEffect(() => {
-    fetch(`${API_URL}/platos`)
-      .then(leerRespuesta)
-      .then((data) => setFotos(Object.fromEntries((data ?? []).map((plato) => [plato.id, plato.imagenesUrls[0]]))))
-      .catch(() => setFotos({}))
-  }, [])
+    dispatch(fetchPlatos())
+  }, [dispatch])
 
   const { items, totalEstimado } = carrito
 
