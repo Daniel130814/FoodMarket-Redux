@@ -12,7 +12,8 @@ import IngredientTrace from '../components/platos/IngredientTrace'
 import ReviewList from '../components/platos/ReviewList'
 import ChefCard from '../components/platos/ChefCard'
 import { fetchPlatoById } from '../components/Redux/platosSlice'
-import { fetchResenasByPlato } from '../components/Redux/resenasSlice'
+import Dialog from '../components/comunes/Dialog'
+import { deleteResena, fetchResenasByPlato } from '../components/Redux/resenasSlice'
 
 // URL base del backend (viene de .env).
 const API_URL = import.meta.env.VITE_API_URL
@@ -28,8 +29,9 @@ const leerRespuesta = (response) =>
     return cuerpo.data
   })
 
-// Props: onAdd (agregar a la cesta de App; la vista solo avisa y App decide si se puede).
-function DetallePlato({ onAdd }) {
+// Props: onAdd (agregar a la cesta de App; la vista solo avisa y App decide si se puede); onSesionVencida (401) y
+// onAviso (Toast): para que el ADMIN elimine reseñas.
+function DetallePlato({ onAdd, onSesionVencida, onAviso }) {
   // Ojo: el id de la URL es un string.
   const { id } = useParams()
 
@@ -45,6 +47,11 @@ function DetallePlato({ onAdd }) {
 
   // Si las reseñas fallan, el detalle se ve igual, sin reseñas (no se muestran las que haya dejado otro plato).
   const resenas = errorResenas === null ? itemsResenas : []
+
+  // Solo el ADMIN modera: token y rol del store, y la reseña que está por eliminar (null = diálogo cerrado).
+  const token = useSelector((state) => state.auth.token)
+  const rol = useSelector((state) => state.auth.user?.role)
+  const [resenaAEliminar, setResenaAEliminar] = useState(null)
 
   // Perfil del chef del plato, o null si no tiene (no todos los chefs lo cargaron).
   const [perfilChef, setPerfilChef] = useState(null)
@@ -97,6 +104,30 @@ function DetallePlato({ onAdd }) {
   }
   if (error !== null) {
     return <ErrorState message={error} />
+  }
+
+  // Elimina la reseña elegida (DELETE /resenas/{id}); el slice la saca de la lista y el promedio se recalcula solo.
+  const eliminarResena = () => {
+    const { id: resenaId } = resenaAEliminar
+    setResenaAEliminar(null)
+
+    dispatch(deleteResena({ id: resenaId, token })).then((resultado) => {
+      if (resultado.type === 'resenas/deleteResena/fulfilled') {
+        onAviso('Eliminaste la reseña')
+        return
+      }
+      // El mensaje de Axios termina en el código HTTP ("Request failed with status code 403").
+      const mensaje = resultado.error.message
+      if (mensaje.includes('401')) {
+        onSesionVencida()
+        return
+      }
+      if (mensaje.includes('403')) {
+        onAviso('No tenés permisos para eliminar reseñas', 'error')
+        return
+      }
+      onAviso('No pudimos eliminar la reseña', 'error')
+    })
   }
 
   const agotado = plato.estado === 'AGOTADO'
@@ -187,9 +218,20 @@ function DetallePlato({ onAdd }) {
     )}
     {tieneResenas && (
       <div className="mt-16">
-        <ReviewList reviews={resenas} />
+        <ReviewList reviews={resenas} onDelete={rol === 'ADMIN' ? setResenaAEliminar : undefined} />
       </div>
     )}
+
+    {/* Diálogo de confirmación (solo ADMIN); cerrado, el título va vacío */}
+    <Dialog
+      open={resenaAEliminar !== null}
+      title="¿Eliminar esta reseña?"
+      message="La reseña se borra para todos y cambia la calificación del plato. No se puede deshacer."
+      confirmLabel="Eliminar"
+      cancelLabel="Cancelar"
+      onConfirm={eliminarResena}
+      onCancel={() => setResenaAEliminar(null)}
+    />
     </>
   )
 }

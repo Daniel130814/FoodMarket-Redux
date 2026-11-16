@@ -245,7 +245,7 @@ function App() {
             {/* Públicas */}
             <Route path="/" element={<Inicio onAdd={agregarSegunSesion} />} />
             <Route path="/catalogo" element={<Catalogo onAdd={agregarSegunSesion} />} />
-            <Route path="/plato/:id" element={<DetallePlato onAdd={agregarSegunSesion} />} />
+            <Route path="/plato/:id" element={<DetallePlato onAdd={agregarSegunSesion} onSesionVencida={sesionVencida} onAviso={avisar} />} />
             <Route path="/chef/:userId" element={<PerfilChef onAdd={agregarSegunSesion} />} />
 
             {/* CLIENTE */}

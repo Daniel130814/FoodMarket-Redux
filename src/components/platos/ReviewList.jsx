@@ -1,8 +1,8 @@
 // Lista de reseñas (de un plato o de un chef).
 
-// Props: reviews ({ id, calificacion, comentario, fechaCreacion, clienteId, platoNombre opcional }), title (encabezado).
-// La API no trae el nombre del autor.
-function ReviewList({ reviews, title = 'Reseñas de quienes lo pidieron' }) {
+// Props: reviews ({ id, calificacion, comentario, fechaCreacion, clienteId, platoNombre opcional }), title (encabezado),
+// onDelete (resena, opcional): si viene, cada reseña muestra "Eliminar" (lo pasa solo el ADMIN). La API no trae el autor.
+function ReviewList({ reviews, title = 'Reseñas de quienes lo pidieron', onDelete }) {
   const formatearFecha = (fechaIso) =>
     new Date(fechaIso).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })
 
@@ -24,6 +24,11 @@ function ReviewList({ reviews, title = 'Reseñas de quienes lo pidieron' }) {
               <p className="mt-2 text-label-md text-primary">{resena.platoNombre}</p>
             )}
             <p className="mt-3 max-w-2xl text-body-md text-on-surface">{resena.comentario}</p>
+            {onDelete !== undefined && (
+              <button type="button" className="btn btn-quiet btn-sm mt-3 text-error" onClick={() => onDelete(resena)}>
+                Eliminar
+              </button>
+            )}
           </li>
         ))}
       </ul>
