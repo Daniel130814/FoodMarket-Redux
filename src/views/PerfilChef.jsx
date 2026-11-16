@@ -1,4 +1,4 @@
-// Perfil público de un chef (/chef/:userId): su presentación, sus platos y las reseñas que recibió (GET /chef-profiles, /platos y /resenas).
+// Perfil público de un chef (/chef/:userId): su presentación, sus platos y las reseñas que recibió (GET /chef-profiles, /platos y /resenas; los dos últimos en Redux).
 import { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Link, useNavigate, useParams } from 'react-router-dom'
@@ -9,6 +9,7 @@ import EmptyState from '../components/comunes/EmptyState'
 import LoadingState from '../components/comunes/LoadingState'
 import ErrorState from '../components/comunes/ErrorState'
 import { fetchPlatos } from '../components/Redux/platosSlice'
+import { fetchResenas } from '../components/Redux/resenasSlice'
 
 // URL base del backend (viene de .env).
 const API_URL = import.meta.env.VITE_API_URL
@@ -39,24 +40,25 @@ function PerfilChef({ onAdd }) {
   const chefId = Number(userId)
   const idValido = Number.isInteger(chefId) && chefId > 0
 
-  // Los platos vienen del store (platosSlice); el perfil y las reseñas todavía se piden acá.
+  // Los platos y las reseñas vienen del store; el perfil todavía se pide acá.
   const dispatch = useDispatch()
   const { items: todosLosPlatos, loading: cargandoPlatos, error: errorPlatos } = useSelector((state) => state.platos)
+  const { items: todasLasResenas, loading: cargandoResenas, error: errorResenas } = useSelector((state) => state.resenas)
   const [perfil, setPerfil] = useState(null)
-  const [todasLasResenas, setTodasLasResenas] = useState([])
 
   // cargandoDatos arranca en true solo si hay que pedir datos (id válido).
   const [cargandoDatos, setCargandoDatos] = useState(idValido)
   const [errorDatos, setErrorDatos] = useState(null)
 
-  // Al abrir o si cambia el chef: GET /platos (a Redux). Ruta pública: sin token.
+  // Al abrir: GET /platos y /resenas (a Redux). Rutas públicas: sin token.
   useEffect(() => {
     if (idValido) {
       dispatch(fetchPlatos())
+      dispatch(fetchResenas())
     }
   }, [dispatch, idValido])
 
-  // Al abrir: GET /chef-profiles y /resenas juntos. Ruta pública: sin token.
+  // Al abrir o si cambia el chef: GET /chef-profiles. Ruta pública: sin token.
   useEffect(() => {
     if (!idValido) {
       return
@@ -65,13 +67,9 @@ function PerfilChef({ onAdd }) {
     // Se cancela si salimos de la vista antes de que respondan.
     const controlador = new AbortController()
 
-    Promise.all([
-      pedirLista('/chef-profiles', controlador.signal),
-      pedirLista('/resenas', controlador.signal),
-    ])
-      .then(([perfiles, resenasApi]) => {
+    pedirLista('/chef-profiles', controlador.signal)
+      .then((perfiles) => {
         setPerfil(perfiles.find((perfilChef) => perfilChef.userId === chefId) ?? null)
-        setTodasLasResenas(resenasApi)
         setErrorDatos(null)
         setCargandoDatos(false)
       })
@@ -101,8 +99,8 @@ function PerfilChef({ onAdd }) {
     }))
 
   // Con un id inválido no se pidió nada: se ignora lo que el store traiga de otra vista.
-  const cargando = idValido && (cargandoPlatos || cargandoDatos)
-  const error = idValido ? (errorPlatos ?? errorDatos) : null
+  const cargando = idValido && (cargandoPlatos || cargandoResenas || cargandoDatos)
+  const error = idValido ? (errorPlatos ?? errorResenas ?? errorDatos) : null
 
   if (cargando) {
     return <LoadingState message="Cargando el perfil del chef..." />

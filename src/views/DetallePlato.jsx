@@ -1,4 +1,4 @@
-// Detalle de un plato (/plato/:id): GET /platos/{id}, /resenas/plato/{id} y /chef-profiles, y agregar a la cesta.
+// Detalle de un plato (/plato/:id): GET /platos/{id}, /resenas/plato/{id} (Redux) y /chef-profiles, y agregar a la cesta.
 import { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useParams, useNavigate } from 'react-router-dom'
@@ -12,6 +12,7 @@ import IngredientTrace from '../components/platos/IngredientTrace'
 import ReviewList from '../components/platos/ReviewList'
 import ChefCard from '../components/platos/ChefCard'
 import { fetchPlatoById } from '../components/Redux/platosSlice'
+import { fetchResenasByPlato } from '../components/Redux/resenasSlice'
 
 // URL base del backend (viene de .env).
 const API_URL = import.meta.env.VITE_API_URL
@@ -37,10 +38,13 @@ function DetallePlato({ onAdd }) {
   // Cantidad elegida: vive acá y no en QuantityStepper porque el botón de agregar y el precio también la necesitan.
   const [cantidad, setCantidad] = useState(1)
 
-  // El plato viene del store (platosSlice); las reseñas y el perfil del chef todavía se piden acá.
+  // El plato y sus reseñas vienen del store; el perfil del chef todavía se pide acá.
   const dispatch = useDispatch()
   const { platoActual: plato, loading: cargando, error } = useSelector((state) => state.platos)
-  const [resenas, setResenas] = useState([])
+  const { items: itemsResenas, loading: cargandoResenas, error: errorResenas } = useSelector((state) => state.resenas)
+
+  // Si las reseñas fallan, el detalle se ve igual, sin reseñas (no se muestran las que haya dejado otro plato).
+  const resenas = errorResenas === null ? itemsResenas : []
 
   // Perfil del chef del plato, o null si no tiene (no todos los chefs lo cargaron).
   const [perfilChef, setPerfilChef] = useState(null)
@@ -51,29 +55,13 @@ function DetallePlato({ onAdd }) {
   // Con 404 (el plato no existe o está pausado) el mensaje de Axios termina en "404": no es una falla, es "no disponible".
   const noDisponible = error !== null && error.includes('404')
 
-  // Pide el plato al abrir y si cambia el id. Ruta pública: sin token.
+  // Pide el plato y sus reseñas al abrir y si cambia el id. Rutas públicas: sin token.
   useEffect(() => {
     if (idValido) {
       dispatch(fetchPlatoById(id))
+      dispatch(fetchResenasByPlato(id))
     }
   }, [dispatch, id, idValido])
-
-  // Reseñas del plato (GET /resenas/plato/{id}). Si fallan, el detalle se ve igual, sin reseñas.
-  useEffect(() => {
-    if (!idValido) {
-      return
-    }
-
-    // Se cancela si salimos de la vista antes de que responda.
-    const controlador = new AbortController()
-
-    fetch(`${API_URL}/resenas/plato/${id}`, { signal: controlador.signal })
-      .then(leerRespuesta)
-      .then((data) => setResenas(data ?? [])) // lista vacía llega como null
-      .catch(() => setResenas([]))
-
-    return () => controlador.abort()
-  }, [id, idValido])
 
   // Perfil del chef: es un extra, si falla el detalle se ve igual. No hay endpoint por chefId, así que se busca en la lista.
   const chefId = plato?.chefId
@@ -104,7 +92,7 @@ function DetallePlato({ onAdd }) {
   }
 
   // El store puede traer el plato de otra visita: hasta que llegue el de este id se muestra "cargando".
-  if (cargando || (error === null && (plato === null || plato.id !== Number(id)))) {
+  if (cargando || cargandoResenas || (error === null && (plato === null || plato.id !== Number(id)))) {
     return <LoadingState message="Cargando el plato..." />
   }
   if (error !== null) {
