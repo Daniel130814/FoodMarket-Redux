@@ -1,7 +1,7 @@
 // Mis pedidos (/pedidos, CLIENTE): pedidos en curso y anteriores; permite cancelar los pendientes, pagar y reseñar.
 import { useEffect, useState } from 'react'
 import { useSelector } from 'react-redux'
-import OrderCard from '../components/pedidos/OrderCard'
+import PedidosLista from '../components/pedidos/PedidosLista'
 import Tabs from '../components/comunes/Tabs'
 import Dialog from '../components/comunes/Dialog'
 import ResenaDialog from '../components/pedidos/ResenaDialog'
@@ -230,25 +230,16 @@ function MisPedidos({ onSesionVencida, onAviso }) {
       <div className="mt-10">
         <Tabs tabs={pestanas} activeId={pestana} onChange={setPestana} label="Pedidos" />
 
-        <div role="tabpanel" className="mt-8 space-y-6">
-          {pedidosVisibles.length === 0 && (
-            <p className="text-body-md text-on-surface-variant">
-              {pestana === 'curso' ? 'No tenés pedidos en curso.' : 'Todavía no tenés pedidos anteriores.'}
-            </p>
-          )}
-          {pedidosVisibles.map((pedido) => (
-            <OrderCard
-              key={pedido.id}
-              order={pedido}
-              steps={PASOS_SEGUIMIENTO}
-              payment={ultimoPago(pedido.id)}
-              reviewedPlatoIds={platosResenados}
-              onCancel={setPedidoACancelarId}
-              onPay={abrirPago}
-              onReview={abrirResena}
-            />
-          ))}
-        </div>
+        <PedidosLista
+          pedidos={pedidosVisibles}
+          emptyMessage={pestana === 'curso' ? 'No tenés pedidos en curso.' : 'Todavía no tenés pedidos anteriores.'}
+          steps={PASOS_SEGUIMIENTO}
+          getPayment={ultimoPago}
+          reviewedPlatoIds={platosResenados}
+          onCancel={setPedidoACancelarId}
+          onPay={abrirPago}
+          onReview={abrirResena}
+        />
       </div>
 
       <Dialog
