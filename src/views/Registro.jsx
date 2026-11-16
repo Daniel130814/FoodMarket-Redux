@@ -7,8 +7,7 @@ import Logo from '../components/layout/Logo'
 import RoleOption from '../components/auth/RoleOption'
 import { register } from '../components/Redux/authSlice'
 
-// Props: onLogin (iniciarSesion de App; recibe { token, userId, role, nombre }).
-function Registro({ onLogin }) {
+function Registro() {
   // location.search trae el rol preseleccionado (?rol=vendedor); location.state, la ruta de origen para volver.
   const location = useLocation()
   const tipoCuentaPorDefecto = location.search === '?rol=vendedor' ? 'CHEF' : 'CLIENTE'
@@ -94,9 +93,6 @@ function Registro({ onLogin }) {
 
     dispatch(register(cuerpoPedido)).then((resultado) => {
       if (resultado.type === 'auth/register/fulfilled') {
-        const { token, user } = resultado.payload
-        // Transitorio: App todavía guarda su propia sesión (se saca en el paso 15.2.d).
-        onLogin({ token, userId: user.userId, role: user.role, nombre: user.nombre })
         navigate(destino)
       }
     })

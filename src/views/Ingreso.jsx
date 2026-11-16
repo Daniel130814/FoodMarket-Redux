@@ -6,8 +6,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import Logo from '../components/layout/Logo'
 import { login } from '../components/Redux/authSlice'
 
-// Props: onLogin (iniciarSesion de App; recibe { token, userId, role, nombre }).
-function Ingreso({ onLogin }) {
+function Ingreso() {
   // Campos del formulario; las claves son las que pide la API.
   const [datos, setDatos] = useState({ username: '', password: '' })
 
@@ -64,9 +63,6 @@ function Ingreso({ onLogin }) {
 
     dispatch(login({ username, password: datos.password })).then((resultado) => {
       if (resultado.type === 'auth/login/fulfilled') {
-        const { token, user } = resultado.payload
-        // Transitorio: App todavía guarda su propia sesión (se saca en el paso 15.2.d).
-        onLogin({ token, userId: user.userId, role: user.role, nombre: user.nombre })
         navigate(destino)
       }
     })

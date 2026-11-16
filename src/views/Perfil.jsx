@@ -90,8 +90,8 @@ const validarChef = (datos) => ({
   ...(datos.descripcion.length > MAX_TEXTO_CHEF && { descripcion: `Máximo ${MAX_TEXTO_CHEF} caracteres.` }),
 })
 
-// Props: onSesionVencida (401), onPerfilActualizado (le pasa a App el usuario guardado para el Header), onAviso (Toast). El token sale del store.
-function Perfil({ onSesionVencida, onPerfilActualizado, onAviso }) {
+// Props: onSesionVencida (401), onAviso (Toast). El token sale del store.
+function Perfil({ onSesionVencida, onAviso }) {
   // Token del store (ruta privada).
   const token = useSelector((state) => state.auth.token)
   const [usuario, setUsuario] = useState(null)
@@ -192,7 +192,7 @@ function Perfil({ onSesionVencida, onPerfilActualizado, onAviso }) {
       .then((guardado) => {
         setUsuario(guardado)
         setForm(aFormulario(guardado))
-        onPerfilActualizado(guardado)
+        // TODO(redux): el nombre del Header no se actualiza hasta volver a ingresar; lo resolverá usuariosSlice (15.7).
         onAviso('Guardaste los cambios de tu perfil')
       })
       .catch((fallo) => {
