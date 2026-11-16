@@ -1,5 +1,6 @@
 // Perfil público de un chef (/chef/:userId): su presentación, sus platos y las reseñas que recibió (GET /chef-profiles, /platos y /resenas).
 import { useEffect, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import ChefCard from '../components/platos/ChefCard'
 import PlatoCard from '../components/platos/PlatoCard'
@@ -7,6 +8,7 @@ import ReviewList from '../components/platos/ReviewList'
 import EmptyState from '../components/comunes/EmptyState'
 import LoadingState from '../components/comunes/LoadingState'
 import ErrorState from '../components/comunes/ErrorState'
+import { fetchPlatos } from '../components/Redux/platosSlice'
 
 // URL base del backend (viene de .env).
 const API_URL = import.meta.env.VITE_API_URL
@@ -37,16 +39,24 @@ function PerfilChef({ onAdd }) {
   const chefId = Number(userId)
   const idValido = Number.isInteger(chefId) && chefId > 0
 
-  // Lo que devuelve la API ya recortado a este chef: su perfil (null si no cargó uno), sus platos y sus reseñas.
+  // Los platos vienen del store (platosSlice); el perfil y las reseñas todavía se piden acá.
+  const dispatch = useDispatch()
+  const { items: todosLosPlatos, loading: cargandoPlatos, error: errorPlatos } = useSelector((state) => state.platos)
   const [perfil, setPerfil] = useState(null)
-  const [platos, setPlatos] = useState([])
-  const [resenas, setResenas] = useState([])
+  const [todasLasResenas, setTodasLasResenas] = useState([])
 
-  // cargando arranca en true solo si hay que pedir datos (id válido).
-  const [cargando, setCargando] = useState(idValido)
-  const [error, setError] = useState(null)
+  // cargandoDatos arranca en true solo si hay que pedir datos (id válido).
+  const [cargandoDatos, setCargandoDatos] = useState(idValido)
+  const [errorDatos, setErrorDatos] = useState(null)
 
-  // Al abrir o si cambia el chef: GET /chef-profiles, /platos y /resenas juntos. Ruta pública: sin token.
+  // Al abrir o si cambia el chef: GET /platos (a Redux). Ruta pública: sin token.
+  useEffect(() => {
+    if (idValido) {
+      dispatch(fetchPlatos())
+    }
+  }, [dispatch, idValido])
+
+  // Al abrir: GET /chef-profiles y /resenas juntos. Ruta pública: sin token.
   useEffect(() => {
     if (!idValido) {
       return
@@ -57,40 +67,42 @@ function PerfilChef({ onAdd }) {
 
     Promise.all([
       pedirLista('/chef-profiles', controlador.signal),
-      pedirLista('/platos', controlador.signal),
       pedirLista('/resenas', controlador.signal),
     ])
-      .then(([perfiles, todosLosPlatos, todasLasResenas]) => {
-        // La API no filtra por chef: GET /platos ignora chefId y no hay reseñas por chef, así que se recorta acá.
-        const platosDelChef = todosLosPlatos.filter((plato) => plato.chefId === chefId)
-        const resenasDelChef = todasLasResenas
-          .filter((resena) => platosDelChef.some((plato) => plato.id === resena.platoId))
-          // Cada reseña lleva el nombre de su plato para que se entienda de qué es.
-          .map((resena) => ({
-            ...resena,
-            platoNombre: platosDelChef.find((plato) => plato.id === resena.platoId).nombre,
-          }))
-
+      .then(([perfiles, resenasApi]) => {
         setPerfil(perfiles.find((perfilChef) => perfilChef.userId === chefId) ?? null)
-        setPlatos(platosDelChef)
-        setResenas(resenasDelChef)
-        setError(null)
-        setCargando(false)
+        setTodasLasResenas(resenasApi)
+        setErrorDatos(null)
+        setCargandoDatos(false)
       })
       .catch((fallo) => {
         if (fallo.name === 'AbortError') {
           return
         }
-        setError(
+        setErrorDatos(
           fallo.status === undefined
             ? 'No pudimos conectar con el servidor. Revisá que el backend esté funcionando e intentá de nuevo.'
             : fallo.message
         )
-        setCargando(false)
+        setCargandoDatos(false)
       })
 
     return () => controlador.abort()
   }, [chefId, idValido])
+
+  // La API no filtra por chef: GET /platos ignora chefId y no hay reseñas por chef, así que se recorta acá.
+  const platos = todosLosPlatos.filter((plato) => plato.chefId === chefId)
+  const resenas = todasLasResenas
+    .filter((resena) => platos.some((plato) => plato.id === resena.platoId))
+    // Cada reseña lleva el nombre de su plato para que se entienda de qué es.
+    .map((resena) => ({
+      ...resena,
+      platoNombre: platos.find((plato) => plato.id === resena.platoId).nombre,
+    }))
+
+  // Con un id inválido no se pidió nada: se ignora lo que el store traiga de otra vista.
+  const cargando = idValido && (cargandoPlatos || cargandoDatos)
+  const error = idValido ? (errorPlatos ?? errorDatos) : null
 
   if (cargando) {
     return <LoadingState message="Cargando el perfil del chef..." />
